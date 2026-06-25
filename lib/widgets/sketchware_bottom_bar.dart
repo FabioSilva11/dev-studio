@@ -146,7 +146,7 @@ class _SketchwareBottomBarState extends State<SketchwareBottomBar> {
         child: Text(
           tabName,
           style: TextStyle(
-            color: active ? widget.accentColor : Colors.black85,
+            color: active ? widget.accentColor : Colors.black87,
             fontSize: 12,
             fontWeight: FontWeight.bold,
           ),
@@ -195,14 +195,14 @@ class _SketchwareBottomBarState extends State<SketchwareBottomBar> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 22, color: Colors.black85),
+              Icon(icon, size: 22, color: Colors.black87),
               const SizedBox(height: 6),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black85),
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.black87),
               ),
             ],
           ),

@@ -175,7 +175,7 @@ class _ViewManagerSheetState extends State<ViewManagerSheet> {
           child: Text(
             label,
             style: TextStyle(
-              color: active ? Colors.white : Colors.black85,
+              color: active ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -531,7 +531,7 @@ class _CreateViewScreenState extends State<CreateViewScreen> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 11,
-              color: isSelected ? Colors.white : Colors.black85,
+              color: isSelected ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
             ),
           ),
