@@ -86,14 +86,26 @@ class EditorWidgetNode {
     this.visible = true,
     this.enabled = true,
     this.orientation = 'vertical',
+    this.paddingLeft = 0.0,
+    this.paddingTop = 0.0,
+    this.paddingRight = 0.0,
+    this.paddingBottom = 0.0,
+    this.marginLeft = 0.0,
+    this.marginTop = 0.0,
+    this.marginRight = 0.0,
+    this.marginBottom = 0.0,
+    this.gravity = 0,
+    this.layoutGravity = 0,
+    this.weight = 0,
+    this.layoutFile = 'main.xml',
   });
 
   final String id;
   final EditorWidgetType type;
   final double x;
   final double y;
-  final double width;
-  final double height;
+  final double width; // Maps to layout width (negative values for MATCH_PARENT/WRAP_CONTENT or absolute)
+  final double height; // Maps to layout height
   final String text;
   final String parentId;
   final int parentType;
@@ -107,6 +119,18 @@ class EditorWidgetNode {
   final bool visible;
   final bool enabled;
   final String orientation;
+  final double paddingLeft;
+  final double paddingTop;
+  final double paddingRight;
+  final double paddingBottom;
+  final double marginLeft;
+  final double marginTop;
+  final double marginRight;
+  final double marginBottom;
+  final int gravity;
+  final int layoutGravity;
+  final int weight;
+  final String layoutFile;
 
   EditorWidgetNode copyWith({
     String? id,
@@ -128,6 +152,18 @@ class EditorWidgetNode {
     bool? visible,
     bool? enabled,
     String? orientation,
+    double? paddingLeft,
+    double? paddingTop,
+    double? paddingRight,
+    double? paddingBottom,
+    double? marginLeft,
+    double? marginTop,
+    double? marginRight,
+    double? marginBottom,
+    int? gravity,
+    int? layoutGravity,
+    int? weight,
+    String? layoutFile,
   }) {
     return EditorWidgetNode(
       id: id ?? this.id,
@@ -149,6 +185,18 @@ class EditorWidgetNode {
       visible: visible ?? this.visible,
       enabled: enabled ?? this.enabled,
       orientation: orientation ?? this.orientation,
+      paddingLeft: paddingLeft ?? this.paddingLeft,
+      paddingTop: paddingTop ?? this.paddingTop,
+      paddingRight: paddingRight ?? this.paddingRight,
+      paddingBottom: paddingBottom ?? this.paddingBottom,
+      marginLeft: marginLeft ?? this.marginLeft,
+      marginTop: marginTop ?? this.marginTop,
+      marginRight: marginRight ?? this.marginRight,
+      marginBottom: marginBottom ?? this.marginBottom,
+      gravity: gravity ?? this.gravity,
+      layoutGravity: layoutGravity ?? this.layoutGravity,
+      weight: weight ?? this.weight,
+      layoutFile: layoutFile ?? this.layoutFile,
     );
   }
 
@@ -173,6 +221,18 @@ class EditorWidgetNode {
     'visible': visible,
     'enabled': enabled,
     'orientation': orientation,
+    'paddingLeft': paddingLeft,
+    'paddingTop': paddingTop,
+    'paddingRight': paddingRight,
+    'paddingBottom': paddingBottom,
+    'marginLeft': marginLeft,
+    'marginTop': marginTop,
+    'marginRight': marginRight,
+    'marginBottom': marginBottom,
+    'gravity': gravity,
+    'layoutGravity': layoutGravity,
+    'weight': weight,
+    'layoutFile': layoutFile,
   };
 
   factory EditorWidgetNode.fromJson(Map<String, Object?> json) {
@@ -201,6 +261,18 @@ class EditorWidgetNode {
       visible: json['visible'] != false,
       enabled: json['enabled'] != false,
       orientation: json['orientation']?.toString() ?? 'vertical',
+      paddingLeft: number('paddingLeft', 0),
+      paddingTop: number('paddingTop', 0),
+      paddingRight: number('paddingRight', 0),
+      paddingBottom: number('paddingBottom', 0),
+      marginLeft: number('marginLeft', 0),
+      marginTop: number('marginTop', 0),
+      marginRight: number('marginRight', 0),
+      marginBottom: number('marginBottom', 0),
+      gravity: integer('gravity', 0),
+      layoutGravity: integer('layoutGravity', 0),
+      weight: integer('weight', 0),
+      layoutFile: json['layoutFile']?.toString() ?? 'main.xml',
     );
   }
 }

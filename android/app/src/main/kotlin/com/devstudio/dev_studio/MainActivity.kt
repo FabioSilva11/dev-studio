@@ -385,22 +385,22 @@ class MainActivity : FlutterActivity() {
         val plaintext = decryptProjectFile(viewFile)
         val sections = parseSketchwareViewSections(plaintext)
         val strings = readSketchwareStrings(projectId)
-        val mainViews = buildList {
-            sections["main.xml"].orEmpty().forEach { line ->
-                if (line.isNotBlank()) {
-                    add(viewBeanToEditorWidget(JSONObject(line), strings))
-                }
-            }
-            sections["main.xml_fab"].orEmpty().forEach { line ->
-                if (line.isNotBlank()) {
-                    add(viewBeanToEditorWidget(JSONObject(line), strings))
+        val allViews = buildList {
+            sections.forEach { (fileName, lines) ->
+                val baseFileName = fileName.removeSuffix("_fab")
+                lines.forEach { line ->
+                    if (line.isNotBlank()) {
+                        val widget = viewBeanToEditorWidget(JSONObject(line), strings).toMutableMap()
+                        widget["layoutFile"] = baseFileName
+                        add(widget)
+                    }
                 }
             }
         }
         return mapOf(
             "version" to 1,
             "fileName" to "main.xml",
-            "widgets" to mainViews,
+            "widgets" to allViews,
             "events" to listOf(mapOf("target" to "Activity", "name" to "onCreate")),
             "components" to emptyList<Any>(),
             "strings" to strings,
@@ -453,8 +453,8 @@ class MainActivity : FlutterActivity() {
             "index" to view.optInt("index", 0),
             "x" to layout.optInt("marginLeft", 24),
             "y" to layout.optInt("marginTop", 24),
-            "width" to if (rawWidth > 0) rawWidth else defaultWidth,
-            "height" to if (rawHeight > 0) rawHeight else defaultHeight,
+            "width" to if (rawWidth != 0) rawWidth else defaultWidth,
+            "height" to if (rawHeight != 0) rawHeight else defaultHeight,
             "text" to resolvedText,
             "hint" to text.optString("hint", ""),
             "backgroundColor" to layout.optLong("backgroundColor", 0xFFFFFFFFL),
@@ -469,6 +469,17 @@ class MainActivity : FlutterActivity() {
             } else {
                 "vertical"
             },
+            "paddingLeft" to layout.optDouble("paddingLeft", 0.0),
+            "paddingTop" to layout.optDouble("paddingTop", 0.0),
+            "paddingRight" to layout.optDouble("paddingRight", 0.0),
+            "paddingBottom" to layout.optDouble("paddingBottom", 0.0),
+            "marginLeft" to layout.optDouble("marginLeft", 0.0),
+            "marginTop" to layout.optDouble("marginTop", 0.0),
+            "marginRight" to layout.optDouble("marginRight", 0.0),
+            "marginBottom" to layout.optDouble("marginBottom", 0.0),
+            "gravity" to layout.optInt("gravity", 0),
+            "layoutGravity" to layout.optInt("layoutGravity", 0),
+            "weight" to layout.optInt("weight", 0),
         )
     }
 
@@ -498,36 +509,22 @@ class MainActivity : FlutterActivity() {
             ?.entries
             ?.associate { it.key.toString() to it.value?.toString().orEmpty() }
             .orEmpty()
-        val normalViews = mutableListOf<String>()
-        val floatingViews = mutableListOf<String>()
+
+        val sectionViews = linkedMapOf<String, MutableList<String>>()
+
         widgets.forEachIndexed { index, rawWidget ->
             val widget = rawWidget as? Map<*, *> ?: return@forEachIndexed
+            val layoutFile = widget["layoutFile"]?.toString() ?: "main.xml"
+            val isFab = (widget["type"] as? Number)?.toInt() == 16
+            val sectionName = if (isFab) "${layoutFile}_fab" else layoutFile
+            
             val serialized = editorWidgetToViewBean(widget, index, stringResources).toString()
-            if ((widget["type"] as? Number)?.toInt() == 16) {
-                floatingViews.add(serialized)
-            } else {
-                normalViews.add(serialized)
-            }
+            sectionViews.getOrPut(sectionName) { mutableListOf() }.add(serialized)
         }
 
         val viewFile = sketchwareViewFile(projectId)
-        val sections = if (viewFile.isFile && viewFile.length() > 0L) {
-            try {
-                parseSketchwareViewSections(decryptProjectFile(viewFile))
-            } catch (_: Throwable) {
-                linkedMapOf()
-            }
-        } else {
-            linkedMapOf()
-        }
-        sections["main.xml"] = normalViews
-        if (floatingViews.isEmpty()) {
-            sections.remove("main.xml_fab")
-        } else {
-            sections["main.xml_fab"] = floatingViews
-        }
         val plaintext = buildString {
-            sections.forEach { (name, lines) ->
+            sectionViews.forEach { (name, lines) ->
                 append('@').append(name).append('\n')
                 lines.forEach { append(it).append('\n') }
                 append('\n')
@@ -587,18 +584,18 @@ class MainActivity : FlutterActivity() {
             put("width", number("width", 150))
             put("height", number("height", 52))
             put("orientation", if (string("orientation", "vertical") == "horizontal") 0 else 1)
-            put("gravity", 0)
-            put("paddingLeft", 0)
-            put("paddingTop", 0)
-            put("paddingRight", 0)
-            put("paddingBottom", 0)
-            put("marginLeft", number("x", 0))
-            put("marginTop", number("y", 0))
-            put("marginRight", 0)
-            put("marginBottom", 0)
-            put("weight", 0)
+            put("gravity", number("gravity", 0))
+            put("paddingLeft", decimal("paddingLeft", 0.0).toInt())
+            put("paddingTop", decimal("paddingTop", 0.0).toInt())
+            put("paddingRight", decimal("paddingRight", 0.0).toInt())
+            put("paddingBottom", decimal("paddingBottom", 0.0).toInt())
+            put("marginLeft", decimal("marginLeft", decimal("x", 0.0)).toInt())
+            put("marginTop", decimal("marginTop", decimal("y", 0.0)).toInt())
+            put("marginRight", decimal("marginRight", 0.0).toInt())
+            put("marginBottom", decimal("marginBottom", 0.0).toInt())
+            put("weight", number("weight", 0))
             put("weightSum", 0)
-            put("layoutGravity", 0)
+            put("layoutGravity", number("layoutGravity", 0))
             put("backgroundColor", signedColor(number("backgroundColor", 0x00FFFFFF)))
             put("borderColor", 0xFF008DCD.toInt())
         }
