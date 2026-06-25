@@ -1,10 +1,32 @@
 # Dev Studio
 
+[![Build APK](https://github.com/FabioSilva11/dev-studio/actions/workflows/release-apk.yml/badge.svg)](https://github.com/FabioSilva11/dev-studio/actions/workflows/release-apk.yml)
+
 Dev Studio e um ambiente de desenvolvimento mobile inspirado no Sketchware, criado com Flutter, focado em criar, abrir e editar projetos Android de forma visual.
+
+## Baixar APK
+
+Toda versao enviada para a branch `main` dispara o GitHub Actions para compilar o APK Android e publicar um arquivo em [Releases](https://github.com/FabioSilva11/dev-studio/releases).
+
+O APK publicado segue o formato `Dev-Studio-<versao>-arm64.apk`.
 
 ## Visao Geral
 
 O projeto oferece uma interface moderna para gerenciamento de projetos, criacao de novos apps, configuracao visual de componentes e edicao estrutural de telas. A proposta e aproximar a experiencia de um construtor visual mobile com recursos conhecidos por usuarios do ecossistema Sketchware.
+
+## Interface
+
+### Criar Novo
+
+![Criar Novo - Dev Studio](docs/images/create-new-screen.png)
+
+### Editor De Layout
+
+![Editor de Layout - Dev Studio](docs/images/layout-editor.png)
+
+### Editor De Eventos
+
+![Editor de Eventos - Dev Studio](docs/images/events-editor.png)
 
 ## Recursos
 
@@ -59,7 +81,7 @@ flutter run
 Para gerar uma APK de release:
 
 ```bash
-flutter build apk --release
+flutter build apk --release --target-platform android-arm64
 ```
 
 Para gerar uma APK de debug:

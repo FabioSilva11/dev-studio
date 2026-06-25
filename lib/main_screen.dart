@@ -499,13 +499,12 @@ class _MainScreenState extends State<MainScreen>
                     onSort: _showSortDialog,
                     onRestore: _ignoreExternalNavigation,
                     onProjectTap: _openProjectEditor,
-                    onProjectIconTap: _ignoreExternalNavigation,
                     onProjectOptions: _showProjectOptions,
                   ),
                   _WebServicesPage(onItemTap: _ignoreExternalNavigation),
                   _ChatPage(
                     projects: _visibleProjects,
-                    onProjectTap: _ignoreExternalNavigation,
+                    onProjectTap: _openProjectEditor,
                     onRefresh: _refreshProjects,
                   ),
                 ],
@@ -679,7 +678,6 @@ class _ProjectsPage extends StatelessWidget {
     required this.onSort,
     required this.onRestore,
     required this.onProjectTap,
-    required this.onProjectIconTap,
     required this.onProjectOptions,
   });
 
@@ -694,7 +692,6 @@ class _ProjectsPage extends StatelessWidget {
   final VoidCallback onSort;
   final VoidCallback onRestore;
   final ValueChanged<ProjectItem> onProjectTap;
-  final VoidCallback onProjectIconTap;
   final ValueChanged<ProjectItem> onProjectOptions;
 
   @override
@@ -771,7 +768,6 @@ class _ProjectsPage extends StatelessWidget {
                 project: project,
                 pinned: pinnedProjectId == project.id,
                 onTap: () => onProjectTap(project),
-                onIconTap: onProjectIconTap,
                 onOptions: () => onProjectOptions(project),
               ),
         ],
@@ -908,14 +904,12 @@ class _ProjectCard extends StatelessWidget {
     required this.project,
     required this.pinned,
     required this.onTap,
-    required this.onIconTap,
     required this.onOptions,
   });
 
   final ProjectItem project;
   final bool pinned;
   final VoidCallback onTap;
-  final VoidCallback onIconTap;
   final VoidCallback onOptions;
 
   @override
@@ -932,78 +926,75 @@ class _ProjectCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                GestureDetector(
-                  onTap: onIconTap,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: mainSurfaceSoft,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: mainBorder),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(7),
-                              child: project.iconBytes != null
-                                  ? Image.memory(
-                                      project.iconBytes!,
-                                      fit: BoxFit.contain,
-                                      gaplessPlayback: true,
-                                    )
-                                  : Image.asset(
-                                      'assets/images/default_project_icon.png',
-                                      fit: BoxFit.contain,
-                                    ),
-                            ),
-                            Align(
-                              alignment: Alignment.bottomCenter,
-                              child: Container(
-                                height: 18,
-                                width: double.infinity,
-                                color: Colors.black.withValues(alpha: 0.4),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  project.id,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: mainSurfaceSoft,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: mainBorder),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(7),
+                            child: project.iconBytes != null
+                                ? Image.memory(
+                                    project.iconBytes!,
+                                    fit: BoxFit.contain,
+                                    gaplessPlayback: true,
+                                  )
+                                : Image.asset(
+                                    'assets/images/default_project_icon.png',
+                                    fit: BoxFit.contain,
                                   ),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              height: 18,
+                              width: double.infinity,
+                              color: Colors.black.withValues(alpha: 0.4),
+                              alignment: Alignment.center,
+                              child: Text(
+                                project.id,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      if (pinned)
-                        const Positioned(
-                          right: -2,
-                          top: -2,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: mainAccentSoft,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(4),
-                              child: Icon(
-                                Icons.push_pin,
-                                color: mainAccent,
-                                size: 12,
-                              ),
+                    ),
+                    if (pinned)
+                      const Positioned(
+                        right: -2,
+                        top: -2,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: mainAccentSoft,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.push_pin,
+                              color: mainAccent,
+                              size: 12,
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1074,7 +1065,7 @@ class _ChatPage extends StatelessWidget {
   });
 
   final List<ProjectItem> projects;
-  final VoidCallback onProjectTap;
+  final ValueChanged<ProjectItem> onProjectTap;
   final Future<void> Function() onRefresh;
 
   @override
@@ -1087,7 +1078,10 @@ class _ChatPage extends StatelessWidget {
         padding: const EdgeInsets.only(top: 6, bottom: 96),
         children: [
           for (final project in projects)
-            _ChatProjectCard(project: project, onTap: onProjectTap),
+            _ChatProjectCard(
+              project: project,
+              onTap: () => onProjectTap(project),
+            ),
           if (projects.isEmpty)
             const Padding(
               padding: EdgeInsets.all(32),

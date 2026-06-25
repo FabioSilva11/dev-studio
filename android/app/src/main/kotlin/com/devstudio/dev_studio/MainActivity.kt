@@ -463,7 +463,7 @@ class MainActivity : FlutterActivity() {
             "elevation" to elevation,
             "borderRadius" to 4,
             "visible" to visible,
-            "enabled" to view.optInt("enabled", 1) != 0,
+            "enabled" to (view.optInt("enabled", 1) != 0),
             "orientation" to if (layout.optInt("orientation", 1) == 0) {
                 "horizontal"
             } else {
