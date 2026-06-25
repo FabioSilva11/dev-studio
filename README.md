@@ -59,11 +59,11 @@ Se voce chegou aqui pelo LinkedIn, bem-vindo! Este e um projeto open source em c
 
 ### Fase 3 — Geracao de codigo real 🚀 (objetivo final)
 - [ ] **Geracao de codigo Java** — etapa atual de implementacao; o compilador ja gera codigo Java compativel com o Sketchware
-- [ ] **Migracao para Kotlin** — apos alinhar completamente o modelo de dados e a logica de compilacao ao Sketchware original, o gerador de codigo sera atualizado para Kotlin moderno
+- [ ] **Migracao para Dart/Flutter** — apos alinhar completamente o modelo de dados e a logica de compilacao ao Sketchware original, o gerador de codigo sera atualizado para gerar projetos Flutter nativos em Dart
 - [ ] Compilacao on-device via integracoes nativas
 - [ ] Assinatura e publicacao de APK direto pelo app
 
-> **Nota tecnica:** A geracao de codigo esta em Java neste momento por ser o formato que o Sketchware Pro utiliza nativamente. Quando o nucleo do editor estiver 100% alinhado ao Sketchware, faremos a transicao para Kotlin como linguagem padrao de saida.
+> **Nota tecnica:** A geracao de codigo esta em Java neste momento por ser o formato que o Sketchware Pro utiliza nativamente. Quando o nucleo do editor estiver 100% alinhado ao Sketchware, faremos a transicao para gerar projetos Flutter/Dart modernos como saida padrao.
 
 ---
 
@@ -74,7 +74,7 @@ Se voce chegou aqui pelo LinkedIn, bem-vindo! Este e um projeto open source em c
 | UI / Framework | Flutter (Dart) + Material 3 |
 | Native Bridge | MethodChannel (Kotlin) |
 | Leitura de projetos | SketchwareProjectService via armazenamento Android |
-| Compilacao | Geracao de codigo Java (Kotlin planejado) |
+| Compilacao | Geracao de codigo Java (Dart/Flutter planejado) |
 | CI/CD | GitHub Actions → APK release automatico |
 
 ---
