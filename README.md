@@ -16,17 +16,18 @@ O projeto oferece uma interface moderna para gerenciamento de projetos, criacao 
 
 ## Interface
 
-### Criar Novo
-
-![Criar Novo - Dev Studio](docs/images/create-new-screen.png)
-
-### Editor De Layout
-
-![Editor de Layout - Dev Studio](docs/images/layout-editor.png)
-
-### Editor De Eventos
-
-![Editor de Eventos - Dev Studio](docs/images/events-editor.png)
+<table>
+  <tr>
+    <td align="center"><strong>Criar Novo</strong></td>
+    <td align="center"><strong>Editor de Layout</strong></td>
+    <td align="center"><strong>Editor de Eventos</strong></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/create-new-screen.png" alt="Criar Novo" width="260"/></td>
+    <td><img src="docs/images/layout-editor.png" alt="Editor de Layout" width="260"/></td>
+    <td><img src="docs/images/events-editor.png" alt="Editor de Eventos" width="260"/></td>
+  </tr>
+</table>
 
 ## Recursos
 
@@ -55,6 +56,13 @@ lib/
   project_editor_screen.dart
   models/
   services/
+  widgets/
+    editor_canvas.dart
+    editor_list_tabs.dart
+    editor_palette.dart
+    property_editor.dart
+    sketchware_bottom_bar.dart
+    view_manager.dart
 android/
 assets/
 test/
