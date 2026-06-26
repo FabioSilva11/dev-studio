@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../models/editor_project.dart';
+
+const double _paletteWidth = 120;
+const double _tileHeight = 58;
+const double _tileRadius = 10;
+const double _tileGap = 6;
 
 class EditorPalette extends StatelessWidget {
   const EditorPalette({
@@ -19,7 +25,7 @@ class EditorPalette extends StatelessWidget {
       color: Colors.white,
       elevation: 1,
       child: SizedBox(
-        width: 118,
+        width: _paletteWidth,
         child: Column(
           children: [
             Padding(
@@ -27,28 +33,42 @@ class EditorPalette extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: IconButton.filledTonal(
-                      onPressed: () => onToggleFavorite(false),
-                      style: IconButton.styleFrom(
-                        backgroundColor: !showFavoritePalette
-                            ? const Color(0xFFEDE9FE)
-                            : const Color(0xFFF2F2F7),
+                    child: SizedBox(
+                      height: 44,
+                      child: IconButton.filledTonal(
+                        onPressed: () => onToggleFavorite(false),
+                        style: IconButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          backgroundColor: !showFavoritePalette
+                              ? const Color(0xFFEDE9FE)
+                              : const Color(0xFFF2F2F7),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        icon: const Icon(Icons.widgets_outlined, size: 20),
+                        tooltip: 'Basic widgets',
                       ),
-                      icon: const Icon(Icons.widgets_outlined, size: 20),
-                      tooltip: 'Basic widgets',
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 6),
                   Expanded(
-                    child: IconButton.filledTonal(
-                      onPressed: () => onToggleFavorite(true),
-                      style: IconButton.styleFrom(
-                        backgroundColor: showFavoritePalette
-                            ? const Color(0xFFEDE9FE)
-                            : const Color(0xFFF2F2F7),
+                    child: SizedBox(
+                      height: 44,
+                      child: IconButton.filledTonal(
+                        onPressed: () => onToggleFavorite(true),
+                        style: IconButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          backgroundColor: showFavoritePalette
+                              ? const Color(0xFFEDE9FE)
+                              : const Color(0xFFF2F2F7),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        icon: const Icon(Icons.bookmark_border, size: 20),
+                        tooltip: 'Favorite widgets',
                       ),
-                      icon: const Icon(Icons.bookmark_border, size: 20),
-                      tooltip: 'Favorite widgets',
                     ),
                   ),
                 ],
@@ -63,14 +83,16 @@ class EditorPalette extends StatelessWidget {
                   );
                 },
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
                   minimumSize: const Size.fromHeight(42),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                 ),
                 icon: const Icon(Icons.add, size: 17),
                 label: const Flexible(
                   child: Text(
                     'New widget',
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 11),
                   ),
                 ),
@@ -85,10 +107,7 @@ class EditorPalette extends StatelessWidget {
                         child: Text(
                           'No favorite widgets',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Color(0xFF8E8E93),
-                            fontSize: 11,
-                          ),
+                          style: TextStyle(color: Color(0xFF8E8E93), fontSize: 11),
                         ),
                       ),
                     )
@@ -172,7 +191,7 @@ class EditorPalette extends StatelessWidget {
         ),
         for (final type in types) ...[
           _buildDraggablePaletteTile(type),
-          const SizedBox(height: 6),
+          const SizedBox(height: _tileGap),
         ],
       ],
     );
@@ -185,9 +204,9 @@ class EditorPalette extends StatelessWidget {
       delay: const Duration(milliseconds: 120),
       feedback: Material(
         color: Colors.transparent,
-        child: Opacity(opacity: 0.5, child: tile),
+        child: SizedBox(width: _paletteWidth - 14, child: Opacity(opacity: 0.55, child: tile)),
       ),
-      childWhenDragging: Opacity(opacity: 0.3, child: tile),
+      childWhenDragging: Opacity(opacity: 0.30, child: tile),
       child: tile,
     );
   }
@@ -201,27 +220,34 @@ class _PaletteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 104,
-      height: 62,
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F2FF),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE3DEFF)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(iconForWidget(type), color: accentColor, size: 24),
-          const SizedBox(height: 4),
-          Text(
-            type.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 10),
+    return SizedBox(
+      width: double.infinity,
+      height: _tileHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F2FF),
+          borderRadius: BorderRadius.circular(_tileRadius),
+          border: Border.all(color: const Color(0xFFE3DEFF)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(iconForWidget(type), color: accentColor, size: 22),
+              const SizedBox(height: 3),
+              Flexible(
+                child: Text(
+                  type.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10, height: 1),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
