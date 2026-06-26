@@ -57,104 +57,112 @@ class _ViewManagerSheetState extends State<ViewManagerSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD1D1D6),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // View / Custom View Switcher Toggle
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      // SafeArea (somente bottom) mantém o sheet branco colado na borda da
+      // tela, mas empurra o CONTEÚDO para cima da barra de navegação/gesto
+      // do sistema -- antes o botão "Create new view" ficava atrás dela.
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildToggleOption('View', !_isCustomView),
-              _buildToggleOption('Custom View', _isCustomView),
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD1D1D6),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // View / Custom View Switcher Toggle
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildToggleOption('View', !_isCustomView),
+                  _buildToggleOption('Custom View', _isCustomView),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Views List
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 280),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: widget.views.map((view) {
+                    final isCurrent = view.name == widget.currentView.name;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isCurrent ? widget.accentColor : const Color(0xFFE2E3E8),
+                          width: isCurrent ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2F2F7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(Icons.phone_android, color: Colors.black54),
+                        ),
+                        title: Text(view.xmlName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(view.javaName, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                        trailing: isCurrent
+                            ? Icon(Icons.check_circle, color: widget.accentColor)
+                            : const Icon(Icons.edit, color: Colors.black54),
+                        onTap: () {
+                          widget.onSelectView(view);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Create new view button
+              FilledButton.icon(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final newView = await showGeneralDialog<ViewItemData>(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierLabel: 'Create View',
+                    pageBuilder: (context, anim1, anim2) {
+                      return CreateViewScreen(accentColor: widget.accentColor);
+                    },
+                  );
+                  if (newView != null) {
+                    widget.onCreateView(newView);
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: widget.accentColor,
+                ),
+                icon: const Icon(Icons.add),
+                label: const Text('Create new view'),
+              ),
             ],
           ),
-          const SizedBox(height: 18),
-
-          // Views List
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: ListView(
-              shrinkWrap: true,
-              children: widget.views.map((view) {
-                final isCurrent = view.name == widget.currentView.name;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isCurrent ? widget.accentColor : const Color(0xFFE2E3E8),
-                      width: isCurrent ? 2 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF2F2F7),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(Icons.phone_android, color: Colors.black54),
-                    ),
-                    title: Text(view.xmlName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(view.javaName, style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                    trailing: isCurrent
-                        ? Icon(Icons.check_circle, color: widget.accentColor)
-                        : const Icon(Icons.edit, color: Colors.black54),
-                    onTap: () {
-                      widget.onSelectView(view);
-                      Navigator.pop(context);
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // Create new view button
-          FilledButton.icon(
-            onPressed: () async {
-              Navigator.pop(context);
-              final newView = await showGeneralDialog<ViewItemData>(
-                context: context,
-                barrierDismissible: true,
-                barrierLabel: 'Create View',
-                pageBuilder: (context, anim1, anim2) {
-                  return CreateViewScreen(accentColor: widget.accentColor);
-                },
-              );
-              if (newView != null) {
-                widget.onCreateView(newView);
-              }
-            },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-              backgroundColor: widget.accentColor,
-            ),
-            icon: const Icon(Icons.add),
-            label: const Text('Create new view'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -225,268 +233,252 @@ class _CreateViewScreenState extends State<CreateViewScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Row(
-        children: [
-          // Left Side: Live Phone Mockup Preview
-          Expanded(
-            flex: 2,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 9 / 16,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFC7C7CC), width: 3),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black12, blurRadius: 16),
-                      ],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        // Background content area
-                        Positioned.fill(
-                          child: Column(
-                            children: [
-                              // Status Bar Mockup
-                              if (_statusBar)
-                                Container(
-                                  height: 24,
-                                  color: Colors.blue.shade800,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('1:56', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                      Icon(Icons.signal_cellular_4_bar, color: Colors.white, size: 10),
-                                    ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top row: live phone mockup preview (left) next to the
+              // StatusBar/Toolbar/Drawer/FAB checklist (right). Both sit
+              // inside the SAME scrolling column and are top-aligned, so
+              // the preview no longer floats inside an oversized,
+              // independently-sized split column (the original bug).
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 130,
+                    height: 230,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFC7C7CC), width: 3),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 16),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Stack(
+                        children: [
+                          // Background content area
+                          Positioned.fill(
+                            child: Column(
+                              children: [
+                                // Status Bar Mockup
+                                if (_statusBar)
+                                  Container(
+                                    height: 24,
+                                    color: Colors.blue.shade800,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('1:56', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                        Icon(Icons.signal_cellular_4_bar, color: Colors.white, size: 10),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              // Toolbar Mockup
-                              if (_toolbar)
-                                Container(
-                                  height: 56,
-                                  color: Colors.blue,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.arrow_back, color: Colors.white),
-                                      const SizedBox(width: 16),
-                                      Text(
-                                        _nameController.text.isEmpty ? 'Activity' : _nameController.text,
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                // Toolbar Mockup
+                                if (_toolbar)
+                                  Container(
+                                    height: 40,
+                                    color: Colors.blue,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.arrow_back, color: Colors.white, size: 18),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            _nameController.text.isEmpty ? 'Activity' : _nameController.text,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                // Canvas Body Mockup
+                                Expanded(
+                                  child: Container(
+                                    color: const Color(0xFFECEFF1),
+                                    child: Center(
+                                      child: Text(
+                                        _type,
+                                        style: const TextStyle(color: Colors.black26, fontWeight: FontWeight.bold, fontSize: 14),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              // Canvas Body Mockup
-                              Expanded(
-                                child: Container(
-                                  color: const Color(0xFFECEFF1),
-                                  child: Center(
-                                    child: Text(
-                                      _type,
-                                      style: TextStyle(color: Colors.black26, fontWeight: FontWeight.bold, fontSize: 18),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Drawer Mockup overlay
-                        if (_drawer)
-                          Positioned(
-                            left: 0,
-                            top: _statusBar ? 24 : 0,
-                            bottom: 0,
-                            width: 140,
-                            child: Container(
-                              color: Colors.white,
-                              child: const Column(
-                                children: [
-                                  UserAccountsDrawerHeader(
-                                    margin: EdgeInsets.zero,
-                                    accountName: Text('User'),
-                                    accountEmail: null,
-                                  ),
-                                  ListTile(leading: Icon(Icons.home), title: Text('Home')),
-                                ],
-                              ),
+                              ],
                             ),
                           ),
 
-                        // FAB Mockup overlay
-                        if (_fab)
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: FloatingActionButton(
-                              onPressed: null,
-                              backgroundColor: Colors.pink,
-                              mini: true,
-                              child: const Icon(Icons.add, color: Colors.white),
+                          // Drawer Mockup overlay
+                          if (_drawer)
+                            Positioned(
+                              left: 0,
+                              top: _statusBar ? 24 : 0,
+                              bottom: 0,
+                              width: 90,
+                              child: Container(
+                                color: Colors.white,
+                                child: const Column(
+                                  children: [
+                                    SizedBox(height: 12),
+                                    CircleAvatar(radius: 16, child: Icon(Icons.android, size: 16)),
+                                    SizedBox(height: 8),
+                                    Divider(height: 1),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+
+                          // FAB Mockup overlay
+                          if (_fab)
+                            Positioned(
+                              right: 8,
+                              bottom: 8,
+                              child: FloatingActionButton(
+                                onPressed: null,
+                                backgroundColor: Colors.pink,
+                                mini: true,
+                                child: const Icon(Icons.add, color: Colors.white, size: 16),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildOptionCheckbox('StatusBar', _statusBar, (val) => setState(() => _statusBar = val ?? true)),
+                        _buildOptionCheckbox('Toolbar', _toolbar, (val) => setState(() => _toolbar = val ?? true)),
+                        _buildOptionCheckbox('Drawer', _drawer, (val) => setState(() => _drawer = val ?? false)),
+                        _buildOptionCheckbox('FAB', _fab, (val) => setState(() => _fab = val ?? false)),
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
-            ),
-          ),
 
-          // Right Side: Configuration Panel
-          Expanded(
-            flex: 3,
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(24),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Layout options (StatusBar, Toolbar, etc.)
-                    const Text('Options', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54)),
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
-                      value: _statusBar,
-                      onChanged: (val) => setState(() => _statusBar = val ?? true),
-                      title: const Text('StatusBar'),
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    CheckboxListTile(
-                      value: _toolbar,
-                      onChanged: (val) => setState(() => _toolbar = val ?? true),
-                      title: const Text('Toolbar'),
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    CheckboxListTile(
-                      value: _drawer,
-                      onChanged: (val) => setState(() => _drawer = val ?? false),
-                      title: const Text('Drawer'),
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    CheckboxListTile(
-                      value: _fab,
-                      onChanged: (val) => setState(() => _fab = val ?? false),
-                      title: const Text('FAB'),
-                      controlAffinity: ListTileControlAffinity.trailing,
-                      contentPadding: EdgeInsets.zero,
-                    ),
+              const SizedBox(height: 24),
 
-                    const SizedBox(height: 16),
+              // Name input
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter name',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (val) => setState(() {}),
+              ),
 
-                    // Name input
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter name',
-                        border: OutlineInputBorder(),
+              const SizedBox(height: 20),
+
+              // Type segmented control
+              _buildSegmentHeader('Type'),
+              Row(
+                children: [
+                  _buildSegmentButton('Type', 'Activity'),
+                  const SizedBox(width: 8),
+                  _buildSegmentButton('Type', 'Fragment'),
+                  const SizedBox(width: 8),
+                  _buildSegmentButton('Type', 'DialogFragment'),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Orientation control
+              _buildSegmentHeader('Screen orientation'),
+              Row(
+                children: [
+                  _buildSegmentButton('Orientation', 'Portrait'),
+                  const SizedBox(width: 8),
+                  _buildSegmentButton('Orientation', 'Landscape'),
+                  const SizedBox(width: 8),
+                  _buildSegmentButton('Orientation', 'Both'),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Keyboard settings
+              _buildSegmentHeader('Keyboard settings'),
+              Row(
+                children: [
+                  _buildSegmentButton('Keyboard', 'Unspecified'),
+                  const SizedBox(width: 8),
+                  _buildSegmentButton('Keyboard', 'Visible'),
+                  const SizedBox(width: 8),
+                  _buildSegmentButton('Keyboard', 'Hidden'),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        final name = _nameController.text.trim();
+                        if (name.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please enter a view name.')),
+                          );
+                          return;
+                        }
+                        final view = ViewItemData(
+                          name: name,
+                          hasStatusBar: _statusBar,
+                          hasToolbar: _toolbar,
+                          hasDrawer: _drawer,
+                          hasFAB: _fab,
+                          type: _type,
+                          orientation: _orientation,
+                          keyboardSetting: _keyboard,
+                        );
+                        Navigator.pop(context, view);
+                      },
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50),
+                        backgroundColor: widget.accentColor,
                       ),
-                      onChanged: (val) => setState(() {}),
+                      child: const Text('Save'),
                     ),
-
-                    const SizedBox(height: 20),
-
-                    // Type segmented control
-                    _buildSegmentHeader('Type'),
-                    Row(
-                      children: [
-                        _buildSegmentButton('Type', 'Activity'),
-                        const SizedBox(width: 8),
-                        _buildSegmentButton('Type', 'Fragment'),
-                        const SizedBox(width: 8),
-                        _buildSegmentButton('Type', 'DialogFragment'),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Orientation control
-                    _buildSegmentHeader('Screen orientation'),
-                    Row(
-                      children: [
-                        _buildSegmentButton('Orientation', 'Portrait'),
-                        const SizedBox(width: 8),
-                        _buildSegmentButton('Orientation', 'Landscape'),
-                        const SizedBox(width: 8),
-                        _buildSegmentButton('Orientation', 'Both'),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Keyboard settings
-                    _buildSegmentHeader('Keyboard settings'),
-                    Row(
-                      children: [
-                        _buildSegmentButton('Keyboard', 'Unspecified'),
-                        const SizedBox(width: 8),
-                        _buildSegmentButton('Keyboard', 'Visible'),
-                        const SizedBox(width: 8),
-                        _buildSegmentButton('Keyboard', 'Hidden'),
-                      ],
-                    ),
-
-                    const SizedBox(height: 36),
-
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () {
-                              final name = _nameController.text.trim();
-                              if (name.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please enter a view name.')),
-                                );
-                                return;
-                              }
-                              final view = ViewItemData(
-                                name: name,
-                                hasStatusBar: _statusBar,
-                                hasToolbar: _toolbar,
-                                hasDrawer: _drawer,
-                                hasFAB: _fab,
-                                type: _type,
-                                orientation: _orientation,
-                                keyboardSetting: _keyboard,
-                              );
-                              Navigator.pop(context, view);
-                            },
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(50),
-                              backgroundColor: widget.accentColor,
-                            ),
-                            child: const Text('Save'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildOptionCheckbox(String label, bool value, ValueChanged<bool?> onChanged) {
+    return CheckboxListTile(
+      value: value,
+      onChanged: onChanged,
+      title: Text(label),
+      controlAffinity: ListTileControlAffinity.trailing,
+      contentPadding: EdgeInsets.zero,
+      dense: true,
     );
   }
 
