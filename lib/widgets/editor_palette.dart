@@ -7,6 +7,27 @@ const double _rowHeight = 34;
 const double _rowRadius = 4;
 const double _sectionGap = 4;
 
+/// Dados carregados no drag da paleta.
+///
+/// No Sketchware, Linear(H), Linear(V), Scroll(H) e Scroll(V) não são apenas
+/// textos diferentes: eles criam beans com orientação e medidas iniciais
+/// diferentes. Este objeto permite portar esse comportamento para o Flutter.
+class PaletteDragData {
+  const PaletteDragData({
+    required this.type,
+    required this.label,
+    this.orientation,
+    this.defaultWidth,
+    this.defaultHeight,
+  });
+
+  final EditorWidgetType type;
+  final String label;
+  final String? orientation;
+  final double? defaultWidth;
+  final double? defaultHeight;
+}
+
 class EditorPalette extends StatelessWidget {
   const EditorPalette({
     super.key,
@@ -97,26 +118,50 @@ class EditorPalette extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(4, 0, 4, 18),
                       children: [
                         _buildPaletteSection('Layouts', const [
-                          _PaletteItem(EditorWidgetType.linearLayout, 'Linear(H)'),
-                          _PaletteItem(EditorWidgetType.linearLayout, 'Linear(V)'),
-                          _PaletteItem(EditorWidgetType.horizontalScroll, 'Scroll(H)'),
-                          _PaletteItem(EditorWidgetType.scrollView, 'Scroll(V)'),
+                          _PaletteItem(
+                            EditorWidgetType.linearLayout,
+                            'Linear(H)',
+                            orientation: 'horizontal',
+                            defaultWidth: -1,
+                            defaultHeight: -2,
+                          ),
+                          _PaletteItem(
+                            EditorWidgetType.linearLayout,
+                            'Linear(V)',
+                            orientation: 'vertical',
+                            defaultWidth: -1,
+                            defaultHeight: -2,
+                          ),
+                          _PaletteItem(
+                            EditorWidgetType.horizontalScroll,
+                            'Scroll(H)',
+                            orientation: 'horizontal',
+                            defaultWidth: -1,
+                            defaultHeight: -2,
+                          ),
+                          _PaletteItem(
+                            EditorWidgetType.scrollView,
+                            'Scroll(V)',
+                            orientation: 'vertical',
+                            defaultWidth: -1,
+                            defaultHeight: -2,
+                          ),
                           _PaletteItem(EditorWidgetType.radioGroup, 'RadioGroup'),
-                          _PaletteItem(EditorWidgetType.relativeLayout, 'RelativeLayout'),
+                          _PaletteItem(EditorWidgetType.relativeLayout, 'RelativeLayout', defaultWidth: -1),
                         ]),
                         _buildPaletteSection('AndroidX', const [
                           _PaletteItem(EditorWidgetType.tabLayout, 'TabLayout'),
                           _PaletteItem(EditorWidgetType.bottomNavigation, 'BottomNavigationView'),
                           _PaletteItem(EditorWidgetType.collapsingToolbar, 'CollapsingToolbar'),
-                          _PaletteItem(EditorWidgetType.cardView, 'CardView'),
-                          _PaletteItem(EditorWidgetType.textInputLayout, 'TextInputLayout'),
-                          _PaletteItem(EditorWidgetType.swipeRefresh, 'SwipeRefreshLayout'),
+                          _PaletteItem(EditorWidgetType.cardView, 'CardView', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.textInputLayout, 'TextInputLayout', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.swipeRefresh, 'SwipeRefreshLayout', defaultWidth: -1),
                         ]),
                         _buildPaletteSection('Widgets', const [
                           _PaletteItem(EditorWidgetType.textView, 'TextView'),
-                          _PaletteItem(EditorWidgetType.editText, 'EditText'),
-                          _PaletteItem(EditorWidgetType.autoCompleteText, 'AutoCompleteTextView'),
-                          _PaletteItem(EditorWidgetType.multiAutoCompleteText, 'MultiAutoCompleteTextView'),
+                          _PaletteItem(EditorWidgetType.editText, 'EditText', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.autoCompleteText, 'AutoCompleteTextView', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.multiAutoCompleteText, 'MultiAutoCompleteTextView', defaultWidth: -1),
                           _PaletteItem(EditorWidgetType.button, 'Button'),
                           _PaletteItem(EditorWidgetType.materialButton, 'MaterialButton'),
                           _PaletteItem(EditorWidgetType.imageView, 'ImageView'),
@@ -124,30 +169,30 @@ class EditorPalette extends StatelessWidget {
                           _PaletteItem(EditorWidgetType.checkBox, 'CheckBox'),
                           _PaletteItem(EditorWidgetType.radioButton, 'RadioButton'),
                           _PaletteItem(EditorWidgetType.switchView, 'Switch'),
-                          _PaletteItem(EditorWidgetType.seekBar, 'SeekBar'),
-                          _PaletteItem(EditorWidgetType.progressBar, 'ProgressBar'),
+                          _PaletteItem(EditorWidgetType.seekBar, 'SeekBar', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.progressBar, 'ProgressBar', defaultWidth: -1),
                           _PaletteItem(EditorWidgetType.ratingBar, 'RatingBar'),
-                          _PaletteItem(EditorWidgetType.searchView, 'SearchView'),
-                          _PaletteItem(EditorWidgetType.webView, 'WebView'),
+                          _PaletteItem(EditorWidgetType.searchView, 'SearchView', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.webView, 'WebView', defaultWidth: -1, defaultHeight: 120),
                         ]),
                         _buildPaletteSection('Lists', const [
-                          _PaletteItem(EditorWidgetType.listView, 'ListView'),
-                          _PaletteItem(EditorWidgetType.gridView, 'GridView'),
-                          _PaletteItem(EditorWidgetType.recyclerView, 'RecyclerView'),
-                          _PaletteItem(EditorWidgetType.spinner, 'Spinner'),
-                          _PaletteItem(EditorWidgetType.viewPager, 'ViewPager'),
+                          _PaletteItem(EditorWidgetType.listView, 'ListView', defaultWidth: -1, defaultHeight: 120),
+                          _PaletteItem(EditorWidgetType.gridView, 'GridView', defaultWidth: -1, defaultHeight: 120),
+                          _PaletteItem(EditorWidgetType.recyclerView, 'RecyclerView', defaultWidth: -1, defaultHeight: 120),
+                          _PaletteItem(EditorWidgetType.spinner, 'Spinner', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.viewPager, 'ViewPager', defaultWidth: -1, defaultHeight: 160),
                         ]),
                         _buildPaletteSection('Library', const [
                           _PaletteItem(EditorWidgetType.lottieAnimation, 'LottieAnimation'),
-                          _PaletteItem(EditorWidgetType.otpView, 'OTPView'),
-                          _PaletteItem(EditorWidgetType.codeView, 'CodeView'),
+                          _PaletteItem(EditorWidgetType.otpView, 'OTPView', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.codeView, 'CodeView', defaultWidth: -1, defaultHeight: 120),
                           _PaletteItem(EditorWidgetType.patternLock, 'PatternLockView'),
                           _PaletteItem(EditorWidgetType.waveSideBar, 'WaveSideBar'),
                           _PaletteItem(EditorWidgetType.badgeView, 'BadgeView'),
                           _PaletteItem(EditorWidgetType.signInButton, 'SignInButton'),
                         ]),
                         _buildPaletteSection('Date & Time', const [
-                          _PaletteItem(EditorWidgetType.calendarView, 'CalendarView'),
+                          _PaletteItem(EditorWidgetType.calendarView, 'CalendarView', defaultWidth: -1, defaultHeight: 220),
                           _PaletteItem(EditorWidgetType.datePicker, 'DatePicker'),
                           _PaletteItem(EditorWidgetType.timePicker, 'TimePicker'),
                           _PaletteItem(EditorWidgetType.analogClock, 'AnalogClock'),
@@ -155,10 +200,10 @@ class EditorPalette extends StatelessWidget {
                         ]),
                         _buildPaletteSection('Other', const [
                           _PaletteItem(EditorWidgetType.floatingButton, 'Floating Button'),
-                          _PaletteItem(EditorWidgetType.mapView, 'MapView'),
-                          _PaletteItem(EditorWidgetType.adView, 'AdView'),
-                          _PaletteItem(EditorWidgetType.youtubePlayer, 'YoutubePlayer'),
-                          _PaletteItem(EditorWidgetType.videoView, 'VideoView'),
+                          _PaletteItem(EditorWidgetType.mapView, 'MapView', defaultWidth: -1, defaultHeight: 160),
+                          _PaletteItem(EditorWidgetType.adView, 'AdView', defaultWidth: -1),
+                          _PaletteItem(EditorWidgetType.youtubePlayer, 'YoutubePlayer', defaultWidth: -1, defaultHeight: 180),
+                          _PaletteItem(EditorWidgetType.videoView, 'VideoView', defaultWidth: -1, defaultHeight: 180),
                         ]),
                       ],
                     ),
@@ -214,8 +259,8 @@ class EditorPalette extends StatelessWidget {
 
   Widget _buildDraggablePaletteRow(_PaletteItem item) {
     final row = _PaletteRow(item: item, accentColor: accentColor);
-    return LongPressDraggable<EditorWidgetType>(
-      data: item.type,
+    return LongPressDraggable<PaletteDragData>(
+      data: item.toDragData(),
       delay: const Duration(milliseconds: 120),
       feedback: Material(
         color: Colors.transparent,
@@ -231,10 +276,27 @@ class EditorPalette extends StatelessWidget {
 }
 
 class _PaletteItem {
-  const _PaletteItem(this.type, this.label);
+  const _PaletteItem(
+    this.type,
+    this.label, {
+    this.orientation,
+    this.defaultWidth,
+    this.defaultHeight,
+  });
 
   final EditorWidgetType type;
   final String label;
+  final String? orientation;
+  final double? defaultWidth;
+  final double? defaultHeight;
+
+  PaletteDragData toDragData() => PaletteDragData(
+        type: type,
+        label: label,
+        orientation: orientation,
+        defaultWidth: defaultWidth,
+        defaultHeight: defaultHeight,
+      );
 }
 
 class _PaletteRow extends StatelessWidget {
