@@ -267,6 +267,14 @@ class _ProjectEditorScreenState extends State<ProjectEditorScreen>
     final oldParentId = widgetNode.parentId;
     final oldIndex = widgetNode.index;
 
+    // The canvas emits an index that was counted while the dragged item was still present
+    // in the list (it was only visually hidden via Opacity). When moving *forward* within
+    // the same parent, the dragged item's own slot shifts every target index by +1, so we
+    // compensate here before running the re-index algorithm.
+    if (oldParentId == newParentId && newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+
     _rememberWidgets();
 
     setState(() {
@@ -311,6 +319,24 @@ class _ProjectEditorScreenState extends State<ProjectEditorScreen>
         height: 180,
         text: type.label,
         backgroundColor: 0xFFF1F4FF,
+        borderRadius: 2,
+        paddingLeft: 8.0,
+        paddingTop: 8.0,
+        paddingRight: 8.0,
+        paddingBottom: 8.0,
+      ),
+      // horizontalScroll must default orientation:'horizontal' so its children
+      // are laid out in a Row instead of the default vertical Column.
+      EditorWidgetType.horizontalScroll => const EditorWidgetNode(
+        id: '',
+        type: EditorWidgetType.horizontalScroll,
+        x: 40,
+        y: 40,
+        width: 280,
+        height: 180,
+        text: 'HorizontalScroll',
+        backgroundColor: 0xFFF1F4FF,
+        orientation: 'horizontal',
         borderRadius: 2,
         paddingLeft: 8.0,
         paddingTop: 8.0,

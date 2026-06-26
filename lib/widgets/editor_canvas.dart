@@ -349,10 +349,19 @@ class _EditorCanvasState extends State<EditorCanvas> {
     bool isRoot = false,
   }) {
     if (orientation == 'horizontal') {
+      // If any child uses match_parent width, Expanded needs MainAxisSize.max so the Row
+      // has a finite width to allocate. Otherwise Expanded + unbounded incoming width → error.
+      final hasMatchParentWidth = children.any((child) => child.width == -1);
       return Row(
-        mainAxisSize: isRoot ? MainAxisSize.max : MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children.map(_buildWidgetNode).toList(),
+        mainAxisSize: (isRoot || hasMatchParentWidth) ? MainAxisSize.max : MainAxisSize.min,
+        // stretch propagates the Row's own height to cross-axis match_parent children (height==-1).
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children.map((child) {
+          Widget w = _buildWidgetNode(child);
+          // Expanded bounds the double.infinity width from _resolveWidth to the Row's finite width.
+          if (child.width == -1) w = Expanded(child: w);
+          return w;
+        }).toList(),
       );
     }
 
@@ -369,10 +378,17 @@ class _EditorCanvasState extends State<EditorCanvas> {
       );
     }
 
+    // Vertical Column
+    final hasMatchParentHeight = children.any((child) => child.height == -1);
     return Column(
-      mainAxisSize: isRoot ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisSize: (isRoot || hasMatchParentHeight) ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: children.map(_buildWidgetNode).toList(),
+      children: children.map((child) {
+        Widget w = _buildWidgetNode(child);
+        // Expanded bounds the double.infinity height from _resolveHeight to the Column's finite height.
+        if (child.height == -1) w = Expanded(child: w);
+        return w;
+      }).toList(),
     );
   }
 
@@ -471,8 +487,6 @@ class _EditorCanvasState extends State<EditorCanvas> {
                     ),
                   ),
                 ),
-              if (selected)
-                const Positioned(right: -4, top: -4, child: _SelectionHandle()),
             ],
           ),
         ),
@@ -498,18 +512,29 @@ class _EditorCanvasState extends State<EditorCanvas> {
   }
 
   double? _resolveWidth(double value, String parentOrientation) {
-    if (value == -1) {
-      return parentOrientation == 'horizontal' ? 140 * widget.scale : double.infinity;
-    }
-    if (value == -2) return null;
+    // -1 = match_parent.
+    // In Row (horizontal main-axis): Expanded in _buildLayoutList bounds it to a finite width,
+    //   then SizedBox(double.infinity) clamps to that finite value via BoxConstraints.enforce.
+    // In Column cross-axis: CrossAxisAlignment.stretch provides a finite tight width; same clamp applies.
+    // Never left unguarded — always wrapped by Expanded or by Column.stretch.
+    if (value == -1) return double.infinity;
+    if (value == -2) return null; // wrap_content
     return value * widget.scale;
   }
 
   double? _resolveHeight(double value, String parentOrientation) {
+    // -1 = match_parent.
+    // In Column (vertical main-axis): Expanded in _buildLayoutList bounds it to a finite height.
+    // In Row cross-axis: Row does NOT bound height unless CrossAxisAlignment.stretch is used
+    //   AND the Row itself has a finite height constraint. Using double.infinity here crashes
+    //   whenever the Row has no bounded height parent. Return null (wrap_content) for safety;
+    //   Row.crossAxisAlignment.stretch (set in _buildLayoutList) will propagate a real height
+    //   when available.
     if (value == -1) {
-      return parentOrientation == 'vertical' ? 56 * widget.scale : double.infinity;
+      if (parentOrientation == 'vertical') return double.infinity; // Expanded makes it finite
+      return null; // Row cross-axis: null prevents infinite-constraint crash
     }
-    if (value == -2) return null;
+    if (value == -2) return null; // wrap_content
     return value * widget.scale;
   }
 
@@ -554,18 +579,6 @@ class _DropTargetInfo {
 
   @override
   int get hashCode => Object.hash(parentId, index, depth, parentRect, orientation);
-}
-
-class _SelectionHandle extends StatelessWidget {
-  const _SelectionHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(color: Color(0xFF6B5CE7), shape: BoxShape.circle),
-      child: SizedBox.square(dimension: 10),
-    );
-  }
 }
 
 class _GridPainter extends CustomPainter {
