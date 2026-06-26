@@ -7,11 +7,6 @@ const double _rowHeight = 34;
 const double _rowRadius = 4;
 const double _sectionGap = 4;
 
-/// Dados carregados no drag da paleta.
-///
-/// No Sketchware, Linear(H), Linear(V), Scroll(H) e Scroll(V) não são apenas
-/// textos diferentes: eles criam beans com orientação e medidas iniciais
-/// diferentes. Este objeto permite portar esse comportamento para o Flutter.
 class PaletteDragData {
   const PaletteDragData({
     required this.type,
@@ -259,14 +254,13 @@ class EditorPalette extends StatelessWidget {
 
   Widget _buildDraggablePaletteRow(_PaletteItem item) {
     final row = _PaletteRow(item: item, accentColor: accentColor);
-    return LongPressDraggable<PaletteDragData>(
+    return Draggable<PaletteDragData>(
       data: item.toDragData(),
-      delay: const Duration(milliseconds: 120),
       feedback: Material(
         color: Colors.transparent,
         child: SizedBox(
           width: _paletteWidth - 8,
-          child: Opacity(opacity: 0.65, child: row),
+          child: Opacity(opacity: 0.70, child: row),
         ),
       ),
       childWhenDragging: Opacity(opacity: 0.30, child: row),
