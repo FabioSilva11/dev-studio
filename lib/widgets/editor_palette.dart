@@ -60,7 +60,7 @@ class EditorPalette extends StatelessWidget {
                 },
                 child: Container(
                   width: double.infinity,
-                  height: 88,
+                  height: 68,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF7F7FA),
                     borderRadius: BorderRadius.circular(8),
@@ -69,8 +69,8 @@ class EditorPalette extends StatelessWidget {
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add, size: 32, color: Color(0xFF56565F)),
-                      SizedBox(height: 6),
+                      Icon(Icons.add, size: 28, color: Color(0xFF56565F)),
+                      SizedBox(height: 3),
                       Text(
                         'Create a widget',
                         textAlign: TextAlign.center,
@@ -176,14 +176,15 @@ class EditorPalette extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      child: Container(
-        height: 42,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: active ? accentColor : Colors.transparent,
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+      child: SizedBox(
+        height: 40,
+        child: Center(
+          child: Icon(
+            icon,
+            size: 22,
+            color: active ? accentColor : const Color(0xFF8E8E93),
+          ),
         ),
-        child: Icon(icon, size: 22, color: active ? Colors.white : const Color(0xFF8E8E93)),
       ),
     );
   }
