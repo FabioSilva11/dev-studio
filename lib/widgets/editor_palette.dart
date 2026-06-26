@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/editor_project.dart';
 
-const double _paletteWidth = 100;
-const double _tileHeight = 54;
-const double _tileRadius = 9;
-const double _tileGap = 5;
+const double _paletteWidth = 120;
+const double _rowHeight = 34;
+const double _rowRadius = 4;
+const double _sectionGap = 4;
 
 class EditorPalette extends StatelessWidget {
   const EditorPalette({
@@ -29,76 +29,58 @@ class EditorPalette extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(6, 7, 6, 5),
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 4),
               child: Row(
                 children: [
                   Expanded(
-                    child: SizedBox(
-                      height: 40,
-                      child: IconButton.filledTonal(
-                        onPressed: () => onToggleFavorite(false),
-                        style: IconButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          backgroundColor: !showFavoritePalette
-                              ? const Color(0xFFEDE9FE)
-                              : const Color(0xFFF2F2F7),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                        ),
-                        icon: const Icon(Icons.widgets_outlined, size: 19),
-                        tooltip: 'Basic widgets',
-                      ),
+                    child: _buildTopTab(
+                      active: !showFavoritePalette,
+                      icon: Icons.widgets_outlined,
+                      onTap: () => onToggleFavorite(false),
                     ),
                   ),
-                  const SizedBox(width: 6),
                   Expanded(
-                    child: SizedBox(
-                      height: 40,
-                      child: IconButton.filledTonal(
-                        onPressed: () => onToggleFavorite(true),
-                        style: IconButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          backgroundColor: showFavoritePalette
-                              ? const Color(0xFFEDE9FE)
-                              : const Color(0xFFF2F2F7),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                        ),
-                        icon: const Icon(Icons.bookmark_border, size: 19),
-                        tooltip: 'Favorite widgets',
-                      ),
+                    child: _buildTopTab(
+                      active: showFavoritePalette,
+                      icon: Icons.bookmark_border,
+                      onTap: () => onToggleFavorite(true),
                     ),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: OutlinedButton.icon(
-                onPressed: () {
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Custom widget creator is not available yet.')),
                   );
                 },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  minimumSize: const Size.fromHeight(40),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                ),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Flexible(
-                  child: Text(
-                    'New widget',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10.5),
+                child: Container(
+                  width: double.infinity,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F7FA),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE3E3EA)),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, size: 32, color: Color(0xFF56565F)),
+                      SizedBox(height: 6),
+                      Text(
+                        'Create a widget',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: Color(0xFF56565F)),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            const Divider(height: 9),
             Expanded(
               child: showFavoritePalette
                   ? const Center(
@@ -112,67 +94,71 @@ class EditorPalette extends StatelessWidget {
                       ),
                     )
                   : ListView(
-                      padding: const EdgeInsets.fromLTRB(6, 0, 6, 18),
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 18),
                       children: [
                         _buildPaletteSection('Layouts', const [
-                          EditorWidgetType.linearLayout,
-                          EditorWidgetType.relativeLayout,
-                          EditorWidgetType.horizontalScroll,
-                          EditorWidgetType.scrollView,
-                          EditorWidgetType.cardView,
-                          EditorWidgetType.textInputLayout,
-                          EditorWidgetType.swipeRefresh,
+                          _PaletteItem(EditorWidgetType.linearLayout, 'Linear(H)'),
+                          _PaletteItem(EditorWidgetType.linearLayout, 'Linear(V)'),
+                          _PaletteItem(EditorWidgetType.horizontalScroll, 'Scroll(H)'),
+                          _PaletteItem(EditorWidgetType.scrollView, 'Scroll(V)'),
+                          _PaletteItem(EditorWidgetType.radioGroup, 'RadioGroup'),
+                          _PaletteItem(EditorWidgetType.relativeLayout, 'RelativeLayout'),
+                        ]),
+                        _buildPaletteSection('AndroidX', const [
+                          _PaletteItem(EditorWidgetType.tabLayout, 'TabLayout'),
+                          _PaletteItem(EditorWidgetType.bottomNavigation, 'BottomNavigationView'),
+                          _PaletteItem(EditorWidgetType.collapsingToolbar, 'CollapsingToolbar'),
+                          _PaletteItem(EditorWidgetType.cardView, 'CardView'),
+                          _PaletteItem(EditorWidgetType.textInputLayout, 'TextInputLayout'),
+                          _PaletteItem(EditorWidgetType.swipeRefresh, 'SwipeRefreshLayout'),
                         ]),
                         _buildPaletteSection('Widgets', const [
-                          EditorWidgetType.textView,
-                          EditorWidgetType.editText,
-                          EditorWidgetType.button,
-                          EditorWidgetType.materialButton,
-                          EditorWidgetType.imageView,
-                          EditorWidgetType.circleImageView,
-                          EditorWidgetType.checkBox,
-                          EditorWidgetType.radioButton,
-                          EditorWidgetType.radioGroup,
-                          EditorWidgetType.switchView,
-                          EditorWidgetType.seekBar,
-                          EditorWidgetType.progressBar,
-                          EditorWidgetType.ratingBar,
-                          EditorWidgetType.searchView,
-                          EditorWidgetType.webView,
-                          EditorWidgetType.autoCompleteText,
-                          EditorWidgetType.multiAutoCompleteText,
+                          _PaletteItem(EditorWidgetType.textView, 'TextView'),
+                          _PaletteItem(EditorWidgetType.editText, 'EditText'),
+                          _PaletteItem(EditorWidgetType.autoCompleteText, 'AutoCompleteTextView'),
+                          _PaletteItem(EditorWidgetType.multiAutoCompleteText, 'MultiAutoCompleteTextView'),
+                          _PaletteItem(EditorWidgetType.button, 'Button'),
+                          _PaletteItem(EditorWidgetType.materialButton, 'MaterialButton'),
+                          _PaletteItem(EditorWidgetType.imageView, 'ImageView'),
+                          _PaletteItem(EditorWidgetType.circleImageView, 'CircleImageView'),
+                          _PaletteItem(EditorWidgetType.checkBox, 'CheckBox'),
+                          _PaletteItem(EditorWidgetType.radioButton, 'RadioButton'),
+                          _PaletteItem(EditorWidgetType.switchView, 'Switch'),
+                          _PaletteItem(EditorWidgetType.seekBar, 'SeekBar'),
+                          _PaletteItem(EditorWidgetType.progressBar, 'ProgressBar'),
+                          _PaletteItem(EditorWidgetType.ratingBar, 'RatingBar'),
+                          _PaletteItem(EditorWidgetType.searchView, 'SearchView'),
+                          _PaletteItem(EditorWidgetType.webView, 'WebView'),
                         ]),
                         _buildPaletteSection('Lists', const [
-                          EditorWidgetType.listView,
-                          EditorWidgetType.gridView,
-                          EditorWidgetType.recyclerView,
-                          EditorWidgetType.spinner,
-                          EditorWidgetType.viewPager,
-                          EditorWidgetType.tabLayout,
-                          EditorWidgetType.bottomNavigation,
+                          _PaletteItem(EditorWidgetType.listView, 'ListView'),
+                          _PaletteItem(EditorWidgetType.gridView, 'GridView'),
+                          _PaletteItem(EditorWidgetType.recyclerView, 'RecyclerView'),
+                          _PaletteItem(EditorWidgetType.spinner, 'Spinner'),
+                          _PaletteItem(EditorWidgetType.viewPager, 'ViewPager'),
                         ]),
                         _buildPaletteSection('Library', const [
-                          EditorWidgetType.lottieAnimation,
-                          EditorWidgetType.otpView,
-                          EditorWidgetType.codeView,
-                          EditorWidgetType.patternLock,
-                          EditorWidgetType.waveSideBar,
-                          EditorWidgetType.badgeView,
-                          EditorWidgetType.signInButton,
+                          _PaletteItem(EditorWidgetType.lottieAnimation, 'LottieAnimation'),
+                          _PaletteItem(EditorWidgetType.otpView, 'OTPView'),
+                          _PaletteItem(EditorWidgetType.codeView, 'CodeView'),
+                          _PaletteItem(EditorWidgetType.patternLock, 'PatternLockView'),
+                          _PaletteItem(EditorWidgetType.waveSideBar, 'WaveSideBar'),
+                          _PaletteItem(EditorWidgetType.badgeView, 'BadgeView'),
+                          _PaletteItem(EditorWidgetType.signInButton, 'SignInButton'),
                         ]),
                         _buildPaletteSection('Date & Time', const [
-                          EditorWidgetType.calendarView,
-                          EditorWidgetType.datePicker,
-                          EditorWidgetType.timePicker,
-                          EditorWidgetType.analogClock,
-                          EditorWidgetType.digitalClock,
+                          _PaletteItem(EditorWidgetType.calendarView, 'CalendarView'),
+                          _PaletteItem(EditorWidgetType.datePicker, 'DatePicker'),
+                          _PaletteItem(EditorWidgetType.timePicker, 'TimePicker'),
+                          _PaletteItem(EditorWidgetType.analogClock, 'AnalogClock'),
+                          _PaletteItem(EditorWidgetType.digitalClock, 'DigitalClock'),
                         ]),
                         _buildPaletteSection('Other', const [
-                          EditorWidgetType.floatingButton,
-                          EditorWidgetType.mapView,
-                          EditorWidgetType.adView,
-                          EditorWidgetType.youtubePlayer,
-                          EditorWidgetType.videoView,
+                          _PaletteItem(EditorWidgetType.floatingButton, 'Floating Button'),
+                          _PaletteItem(EditorWidgetType.mapView, 'MapView'),
+                          _PaletteItem(EditorWidgetType.adView, 'AdView'),
+                          _PaletteItem(EditorWidgetType.youtubePlayer, 'YoutubePlayer'),
+                          _PaletteItem(EditorWidgetType.videoView, 'VideoView'),
                         ]),
                       ],
                     ),
@@ -183,80 +169,106 @@ class EditorPalette extends StatelessWidget {
     );
   }
 
-  Widget _buildPaletteSection(String label, List<EditorWidgetType> types) {
+  Widget _buildTopTab({
+    required bool active,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? accentColor : Colors.transparent,
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+        ),
+        child: Icon(icon, size: 22, color: active ? Colors.white : const Color(0xFF8E8E93)),
+      ),
+    );
+  }
+
+  Widget _buildPaletteSection(String label, List<_PaletteItem> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 9, 4, 5),
+          padding: const EdgeInsets.fromLTRB(0, 6, 0, 5),
           child: Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF8E8E93),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              color: accentColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
-        for (final type in types) ...[
-          _buildDraggablePaletteTile(type),
-          const SizedBox(height: _tileGap),
+        for (final item in items) ...[
+          _buildDraggablePaletteRow(item),
+          const SizedBox(height: _sectionGap),
         ],
       ],
     );
   }
 
-  Widget _buildDraggablePaletteTile(EditorWidgetType type) {
-    final tile = _PaletteTile(type: type, accentColor: accentColor);
+  Widget _buildDraggablePaletteRow(_PaletteItem item) {
+    final row = _PaletteRow(item: item, accentColor: accentColor);
     return LongPressDraggable<EditorWidgetType>(
-      data: type,
+      data: item.type,
       delay: const Duration(milliseconds: 120),
       feedback: Material(
         color: Colors.transparent,
-        child: SizedBox(width: _paletteWidth - 12, child: Opacity(opacity: 0.55, child: tile)),
+        child: SizedBox(
+          width: _paletteWidth - 8,
+          child: Opacity(opacity: 0.65, child: row),
+        ),
       ),
-      childWhenDragging: Opacity(opacity: 0.30, child: tile),
-      child: tile,
+      childWhenDragging: Opacity(opacity: 0.30, child: row),
+      child: row,
     );
   }
 }
 
-class _PaletteTile extends StatelessWidget {
-  const _PaletteTile({required this.type, required this.accentColor});
+class _PaletteItem {
+  const _PaletteItem(this.type, this.label);
 
   final EditorWidgetType type;
+  final String label;
+}
+
+class _PaletteRow extends StatelessWidget {
+  const _PaletteRow({required this.item, required this.accentColor});
+
+  final _PaletteItem item;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: _tileHeight,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF4F2FF),
-          borderRadius: BorderRadius.circular(_tileRadius),
-          border: Border.all(color: const Color(0xFFE3DEFF)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(iconForWidget(type), color: accentColor, size: 21),
-              const SizedBox(height: 3),
-              Flexible(
-                child: Text(
-                  type.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 9.6, height: 1),
-                ),
+      height: _rowHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F0F6),
+        borderRadius: BorderRadius.circular(_rowRadius),
+      ),
+      child: Row(
+        children: [
+          Icon(iconForWidget(item.type), color: const Color(0xFF5C5C66), size: 18),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              item.label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                height: 1,
+                color: Color(0xFF56565F),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
