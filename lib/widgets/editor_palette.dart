@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/editor_project.dart';
 
-const double _paletteWidth = 120;
-const double _tileHeight = 58;
-const double _tileRadius = 10;
-const double _tileGap = 6;
+const double _paletteWidth = 100;
+const double _tileHeight = 54;
+const double _tileRadius = 9;
+const double _tileGap = 5;
 
 class EditorPalette extends StatelessWidget {
   const EditorPalette({
@@ -29,12 +29,12 @@ class EditorPalette extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(7, 8, 7, 5),
+              padding: const EdgeInsets.fromLTRB(6, 7, 6, 5),
               child: Row(
                 children: [
                   Expanded(
                     child: SizedBox(
-                      height: 44,
+                      height: 40,
                       child: IconButton.filledTonal(
                         onPressed: () => onToggleFavorite(false),
                         style: IconButton.styleFrom(
@@ -46,7 +46,7 @@ class EditorPalette extends StatelessWidget {
                             borderRadius: BorderRadius.circular(22),
                           ),
                         ),
-                        icon: const Icon(Icons.widgets_outlined, size: 20),
+                        icon: const Icon(Icons.widgets_outlined, size: 19),
                         tooltip: 'Basic widgets',
                       ),
                     ),
@@ -54,7 +54,7 @@ class EditorPalette extends StatelessWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: SizedBox(
-                      height: 44,
+                      height: 40,
                       child: IconButton.filledTonal(
                         onPressed: () => onToggleFavorite(true),
                         style: IconButton.styleFrom(
@@ -66,7 +66,7 @@ class EditorPalette extends StatelessWidget {
                             borderRadius: BorderRadius.circular(22),
                           ),
                         ),
-                        icon: const Icon(Icons.bookmark_border, size: 20),
+                        icon: const Icon(Icons.bookmark_border, size: 19),
                         tooltip: 'Favorite widgets',
                       ),
                     ),
@@ -75,7 +75,7 @@ class EditorPalette extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: OutlinedButton.icon(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -83,22 +83,22 @@ class EditorPalette extends StatelessWidget {
                   );
                 },
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 7),
-                  minimumSize: const Size.fromHeight(42),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  minimumSize: const Size.fromHeight(40),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                 ),
-                icon: const Icon(Icons.add, size: 17),
+                icon: const Icon(Icons.add, size: 16),
                 label: const Flexible(
                   child: Text(
                     'New widget',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11),
+                    style: TextStyle(fontSize: 10.5),
                   ),
                 ),
               ),
             ),
-            const Divider(height: 10),
+            const Divider(height: 9),
             Expanded(
               child: showFavoritePalette
                   ? const Center(
@@ -112,7 +112,7 @@ class EditorPalette extends StatelessWidget {
                       ),
                     )
                   : ListView(
-                      padding: const EdgeInsets.fromLTRB(7, 0, 7, 18),
+                      padding: const EdgeInsets.fromLTRB(6, 0, 6, 18),
                       children: [
                         _buildPaletteSection('Layouts', const [
                           EditorWidgetType.linearLayout,
@@ -132,12 +132,15 @@ class EditorPalette extends StatelessWidget {
                           EditorWidgetType.circleImageView,
                           EditorWidgetType.checkBox,
                           EditorWidgetType.radioButton,
+                          EditorWidgetType.radioGroup,
                           EditorWidgetType.switchView,
                           EditorWidgetType.seekBar,
                           EditorWidgetType.progressBar,
                           EditorWidgetType.ratingBar,
                           EditorWidgetType.searchView,
                           EditorWidgetType.webView,
+                          EditorWidgetType.autoCompleteText,
+                          EditorWidgetType.multiAutoCompleteText,
                         ]),
                         _buildPaletteSection('Lists', const [
                           EditorWidgetType.listView,
@@ -145,12 +148,17 @@ class EditorPalette extends StatelessWidget {
                           EditorWidgetType.recyclerView,
                           EditorWidgetType.spinner,
                           EditorWidgetType.viewPager,
+                          EditorWidgetType.tabLayout,
+                          EditorWidgetType.bottomNavigation,
                         ]),
                         _buildPaletteSection('Library', const [
                           EditorWidgetType.lottieAnimation,
                           EditorWidgetType.otpView,
                           EditorWidgetType.codeView,
                           EditorWidgetType.patternLock,
+                          EditorWidgetType.waveSideBar,
+                          EditorWidgetType.badgeView,
+                          EditorWidgetType.signInButton,
                         ]),
                         _buildPaletteSection('Date & Time', const [
                           EditorWidgetType.calendarView,
@@ -164,6 +172,7 @@ class EditorPalette extends StatelessWidget {
                           EditorWidgetType.mapView,
                           EditorWidgetType.adView,
                           EditorWidgetType.youtubePlayer,
+                          EditorWidgetType.videoView,
                         ]),
                       ],
                     ),
@@ -179,7 +188,7 @@ class EditorPalette extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 10, 4, 5),
+          padding: const EdgeInsets.fromLTRB(4, 9, 4, 5),
           child: Text(
             label,
             style: const TextStyle(
@@ -204,7 +213,7 @@ class EditorPalette extends StatelessWidget {
       delay: const Duration(milliseconds: 120),
       feedback: Material(
         color: Colors.transparent,
-        child: SizedBox(width: _paletteWidth - 14, child: Opacity(opacity: 0.55, child: tile)),
+        child: SizedBox(width: _paletteWidth - 12, child: Opacity(opacity: 0.55, child: tile)),
       ),
       childWhenDragging: Opacity(opacity: 0.30, child: tile),
       child: tile,
@@ -230,11 +239,11 @@ class _PaletteTile extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE3DEFF)),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(iconForWidget(type), color: accentColor, size: 22),
+              Icon(iconForWidget(type), color: accentColor, size: 21),
               const SizedBox(height: 3),
               Flexible(
                 child: Text(
@@ -242,7 +251,7 @@ class _PaletteTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10, height: 1),
+                  style: const TextStyle(fontSize: 9.6, height: 1),
                 ),
               ),
             ],
