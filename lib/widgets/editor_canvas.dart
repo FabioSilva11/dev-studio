@@ -62,7 +62,7 @@ class _EditorCanvasState extends State<EditorCanvas> {
   @override
   void didUpdateWidget(covariant EditorCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.widgets != widget.widgets || oldWidget.scale != widget.scale) {
+    if (oldWidget.widgets != widget.widgets) {
       _nodeRects.clear();
       _hoverTarget = null;
       _dragging = false;
@@ -71,68 +71,60 @@ class _EditorCanvasState extends State<EditorCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    // Mantém a área do editor sempre branca e clicável. Antes o Canvas ficava
-    // visualmente transparente sobre o fundo cinza do Scaffold e o DragTarget
-    // não cobria a área inteira em alguns tamanhos de tela.
-    return ColoredBox(
-      color: Colors.white,
-      child: SizedBox(
-        width: double.infinity,
+    return Center(
+      child: Container(
+        key: _canvasKey,
+        width: widget.canvasWidth * widget.scale,
         height: widget.canvasHeight * widget.scale,
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: Container(
-            key: _canvasKey,
-            width: widget.canvasWidth * widget.scale,
-            height: widget.canvasHeight * widget.scale,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE2E3E8), width: 1),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE2E3E8), width: 1),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
-            clipBehavior: Clip.hardEdge,
-            child: DragTarget<Object>(
-              hitTestBehavior: HitTestBehavior.opaque,
-              onWillAcceptWithDetails: (details) => _canAcceptDrag(details.data),
-              onMove: _handleDragMove,
-              onLeave: (_) => _clearHover(),
-              onAcceptWithDetails: _handleDrop,
-              builder: (context, candidateData, rejectedData) {
-                return Stack(
-                  children: [
-                    Positioned.fill(child: CustomPaint(painter: _GridPainter(widget.scale))),
-                    Positioned.fill(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: () => widget.onSelect(null),
-                        child: Padding(
-                          padding: EdgeInsets.all(8 * widget.scale),
-                          child: _buildLayoutList(
-                            parentId: 'root',
-                            children: _rootWidgets,
-                            orientation: 'vertical',
-                            isRoot: true,
-                          ),
-                        ),
+          ],
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: DragTarget<Object>(
+          onWillAcceptWithDetails: (details) => _canAcceptDrag(details.data),
+          onMove: _handleDragMove,
+          onLeave: (_) => _clearHover(),
+          onAcceptWithDetails: _handleDrop,
+          builder: (context, candidateData, rejectedData) {
+            return Stack(
+              children: [
+                Positioned.fill(child: CustomPaint(painter: _GridPainter(widget.scale))),
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => widget.onSelect(null),
+                    child: Padding(
+                      padding: EdgeInsets.all(8 * widget.scale),
+                      child: _buildLayoutList(
+                        parentId: 'root',
+                        children: _rootWidgets,
+                        orientation: 'vertical',
+                        isRoot: true,
                       ),
                     ),
-                    if (widget.widgets.isEmpty && !_dragging)
-                      IgnorePointer(
-                        child: Center(
-                          child: Text(
-                            'Drag a view here',
-                            style: TextStyle(
-                              color: const Color(0xFF8E8E93),
-                              fontSize: 13 * widget.scale.clamp(0.85, 1.0),
-                            ),
-                          ),
-                        ),
+                  ),
+                ),
+                if (widget.widgets.isEmpty && !_dragging)
+                  const IgnorePointer(
+                    child: Center(
+                      child: Text(
+                        'Drag a view here',
+                        style: TextStyle(color: Color(0xFF8E8E93)),
                       ),
-                    if (_hoverTarget != null) _buildDropHighlight(_hoverTarget!),
-                  ],
-                );
-              },
-            ),
-          ),
+                    ),
+                  ),
+                if (_hoverTarget != null) _buildDropHighlight(_hoverTarget!),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -431,8 +423,9 @@ class _EditorCanvasState extends State<EditorCanvas> {
 
     return MouseRegion(
       cursor: SystemMouseCursors.grab,
-      child: Draggable<String>(
+      child: LongPressDraggable<String>(
         data: node.id,
+        delay: const Duration(milliseconds: 120),
         feedback: Material(
           color: Colors.transparent,
           child: Opacity(
