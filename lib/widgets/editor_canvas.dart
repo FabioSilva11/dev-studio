@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../models/editor_project.dart';
-import 'editor_palette.dart'; // to reuse iconForWidget
+import 'editor_palette.dart';
 
 class EditorCanvas extends StatelessWidget {
   const EditorCanvas({
@@ -28,9 +29,10 @@ class EditorCanvas extends StatelessWidget {
   final double canvasWidth;
   final double canvasHeight;
 
-  // Find root widgets (direct children of canvas)
   List<EditorWidgetNode> get _rootWidgets {
-    final root = widgets.where((w) => w.parentId == 'root' || !_exists(w.parentId)).toList()
+    final root = widgets
+        .where((w) => w.parentId == 'root' || !_exists(w.parentId))
+        .toList()
       ..sort((a, b) => a.index.compareTo(b.index));
     return root;
   }
@@ -59,54 +61,89 @@ class EditorCanvas extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            // Grid background
-            Positioned.fill(
-              child: CustomPaint(painter: _GridPainter(scale)),
-            ),
-
-            // Base Canvas Drop Target & Nested Renderer
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onSelect(null),
-                child: _buildLayoutList(
-                  parentId: 'root',
-                  children: _rootWidgets,
-                  orientation: 'vertical',
-                  isRoot: true,
-                ),
-              ),
-            ),
-
-            if (widgets.isEmpty)
-              const IgnorePointer(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.touch_app_outlined,
-                        size: 42,
-                        color: Color(0xFFB1B2BA),
-                      ),
-                      SizedBox(height: 10),
-                      Text(
-                        'Drag a view here',
-                        style: TextStyle(color: Color(0xFF8E8E93)),
-                      ),
-                    ],
+        child: DragTarget<Object>(
+          onWillAcceptWithDetails: (details) => _canDropOnRoot(details.data),
+          onAcceptWithDetails: (details) => _dropOnRoot(details.data),
+          builder: (context, candidateData, rejectedData) {
+            final isHovering = candidateData.isNotEmpty;
+            return Stack(
+              children: [
+                Positioned.fill(child: CustomPaint(painter: _GridPainter(scale))),
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onSelect(null),
+                    child: _buildLayoutList(
+                      parentId: 'root',
+                      children: _rootWidgets,
+                      orientation: 'vertical',
+                      isRoot: true,
+                    ),
                   ),
                 ),
-              ),
-          ],
+                if (widgets.isEmpty || isHovering)
+                  IgnorePointer(
+                    child: Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: isHovering
+                              ? accentColor.withValues(alpha: 0.10)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isHovering ? accentColor : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isHovering ? Icons.add_circle_outline : Icons.touch_app_outlined,
+                              size: 42,
+                              color: isHovering ? accentColor : const Color(0xFFB1B2BA),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              isHovering ? 'Release to add view' : 'Drag a view here',
+                              style: TextStyle(
+                                color: isHovering ? accentColor : const Color(0xFF8E8E93),
+                                fontWeight: isHovering ? FontWeight.w700 : FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  // Recursive Layout List with drop zones between children
+  bool _canDropOnRoot(Object data) {
+    if (data is EditorWidgetType) return true;
+    if (data is String) return widgets.any((item) => item.id == data);
+    return false;
+  }
+
+  void _dropOnRoot(Object data) {
+    final insertIndex = _rootWidgets.length;
+    if (data is EditorWidgetType) {
+      onAddWidget(data, 'root', insertIndex);
+    } else if (data is String) {
+      final node = widgets.where((item) => item.id == data).firstOrNull;
+      if (node != null && node.parentId != 'root') {
+        onMoveWidget(data, 'root', insertIndex);
+      }
+    }
+  }
+
   Widget _buildLayoutList({
     required String parentId,
     required List<EditorWidgetNode> children,
@@ -114,21 +151,18 @@ class EditorCanvas extends StatelessWidget {
     bool isRoot = false,
   }) {
     final isVertical = orientation == 'vertical';
-
-    List<Widget> listItems = [];
-
-    // Add initial drop target
-    listItems.add(
+    final listItems = <Widget>[
       _buildInsertionTarget(parentId: parentId, index: 0, isVertical: isVertical),
-    );
+    ];
 
-    for (int i = 0; i < children.length; i++) {
-      final child = children[i];
+    for (var i = 0; i < children.length; i++) {
+      listItems.add(_buildWidgetNode(children[i]));
       listItems.add(
-        _buildWidgetNode(child),
-      );
-      listItems.add(
-        _buildInsertionTarget(parentId: parentId, index: i + 1, isVertical: isVertical),
+        _buildInsertionTarget(
+          parentId: parentId,
+          index: i + 1,
+          isVertical: isVertical,
+        ),
       );
     }
 
@@ -150,15 +184,11 @@ class EditorCanvas extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: listItems,
       );
-    } else {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: listItems,
-      );
     }
+
+    return Row(mainAxisSize: MainAxisSize.min, children: listItems);
   }
 
-  // Built drop insertion target (horizontal line or vertical line placeholder)
   Widget _buildInsertionTarget({
     required String parentId,
     required int index,
@@ -166,14 +196,11 @@ class EditorCanvas extends StatelessWidget {
   }) {
     return DragTarget<Object>(
       onWillAcceptWithDetails: (details) {
-        // Prevent dropping a widget inside itself or its descendants
         final data = details.data;
-        if (data is String) {
-          if (data == parentId || _isDescendantOf(parentId, data)) {
-            return false;
-          }
+        if (data is String && (data == parentId || _isDescendantOf(parentId, data))) {
+          return false;
         }
-        return true;
+        return data is EditorWidgetType || data is String;
       },
       onAcceptWithDetails: (details) {
         final data = details.data;
@@ -185,15 +212,13 @@ class EditorCanvas extends StatelessWidget {
       },
       builder: (context, candidateData, rejectedData) {
         final isHovered = candidateData.isNotEmpty;
-        final size = isHovered ? 8.0 : 4.0;
-        
         return AnimatedContainer(
           duration: const Duration(milliseconds: 100),
-          width: isVertical ? double.infinity : (isHovered ? 12.0 : 4.0),
-          height: isVertical ? (isHovered ? 12.0 : 4.0) : double.infinity,
+          width: isVertical ? double.infinity : (isHovered ? 12 : 4),
+          height: isVertical ? (isHovered ? 12 : 4) : double.infinity,
           margin: EdgeInsets.symmetric(
-            horizontal: isVertical ? 0.0 : 2.0,
-            vertical: isVertical ? 2.0 : 0.0,
+            horizontal: isVertical ? 0 : 2,
+            vertical: isVertical ? 2 : 0,
           ),
           decoration: BoxDecoration(
             color: isHovered ? accentColor : Colors.transparent,
@@ -209,39 +234,19 @@ class EditorCanvas extends StatelessWidget {
     final visited = <String>{};
     while (current != null && current.parentId != 'root' && visited.add(current.id)) {
       if (current.parentId == ancestorId) return true;
-      final pId = current.parentId;
-      current = widgets.where((item) => item.id == pId).firstOrNull;
+      current = widgets.where((item) => item.id == current!.parentId).firstOrNull;
     }
     return false;
   }
 
-  // Individual node widget with selection, double tap, drag & drop
   Widget _buildWidgetNode(EditorWidgetNode node) {
     final selected = node.id == selectedWidgetId;
     final isContainer = _isLayoutNode(node);
-
-    // Filter children of this container
     final children = widgets.where((w) => w.parentId == node.id).toList()
       ..sort((a, b) => a.index.compareTo(b.index));
 
-    // Custom dimensions or wrap content/match parent mapping
-    double? widthVal;
-    if (node.width == -1) {
-      widthVal = double.infinity;
-    } else if (node.width == -2) {
-      widthVal = null; // Wrap content
-    } else {
-      widthVal = node.width * scale;
-    }
-
-    double? heightVal;
-    if (node.height == -1) {
-      heightVal = double.infinity;
-    } else if (node.height == -2) {
-      heightVal = null; // Wrap content
-    } else {
-      heightVal = node.height * scale;
-    }
+    final widthVal = _resolveSize(node.width);
+    final heightVal = _resolveSize(node.height);
 
     Widget content = _EditorNodePreview(
       node: node,
@@ -255,7 +260,6 @@ class EditorCanvas extends StatelessWidget {
           : null,
     );
 
-    // Apply Margins
     content = Padding(
       padding: EdgeInsets.only(
         left: node.marginLeft * scale,
@@ -274,15 +278,24 @@ class EditorCanvas extends StatelessWidget {
         feedback: Material(
           color: Colors.transparent,
           child: Opacity(
-            opacity: 0.6,
-            child: Container(
-              padding: const EdgeInsets.all(8),
+            opacity: 0.65,
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 color: accentColor.withValues(alpha: 0.15),
                 border: Border.all(color: accentColor, width: 2),
                 borderRadius: BorderRadius.circular(node.borderRadius),
               ),
-              child: Text(node.id, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  node.id,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -297,11 +310,7 @@ class EditorCanvas extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              SizedBox(
-                width: widthVal,
-                height: heightVal,
-                child: content,
-              ),
+              SizedBox(width: widthVal, height: heightVal, child: content),
               if (selected)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -333,17 +342,23 @@ class EditorCanvas extends StatelessWidget {
     );
   }
 
+  double? _resolveSize(double value) {
+    if (value == -1) return double.infinity;
+    if (value == -2) return null;
+    return value * scale;
+  }
+
   bool _isLayoutNode(EditorWidgetNode node) => switch (node.type) {
-    EditorWidgetType.linearLayout ||
-    EditorWidgetType.relativeLayout ||
-    EditorWidgetType.horizontalScroll ||
-    EditorWidgetType.scrollView ||
-    EditorWidgetType.cardView ||
-    EditorWidgetType.textInputLayout ||
-    EditorWidgetType.swipeRefresh ||
-    EditorWidgetType.collapsingToolbar => true,
-    _ => false,
-  };
+        EditorWidgetType.linearLayout ||
+        EditorWidgetType.relativeLayout ||
+        EditorWidgetType.horizontalScroll ||
+        EditorWidgetType.scrollView ||
+        EditorWidgetType.cardView ||
+        EditorWidgetType.textInputLayout ||
+        EditorWidgetType.swipeRefresh ||
+        EditorWidgetType.collapsingToolbar => true,
+        _ => false,
+      };
 }
 
 class _SelectionHandle extends StatelessWidget {
@@ -364,11 +379,6 @@ class _GridPainter extends CustomPainter {
   final double scale;
 
   @override
-  Widget build(BuildContext context) {
-    return const SizedBox.shrink();
-  }
-
-  @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = const Color(0x0C000000)
@@ -383,8 +393,7 @@ class _GridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GridPainter oldDelegate) =>
-      oldDelegate.scale != scale;
+  bool shouldRepaint(covariant _GridPainter oldDelegate) => oldDelegate.scale != scale;
 }
 
 class _EditorNodePreview extends StatelessWidget {
@@ -403,13 +412,9 @@ class _EditorNodePreview extends StatelessWidget {
     final background = Color(node.backgroundColor & 0xFFFFFFFF);
     final foreground = Color(node.textColor & 0xFFFFFFFF);
     final radius = BorderRadius.circular(node.borderRadius * scale);
-    final textStyle = TextStyle(
-      color: foreground,
-      fontSize: node.fontSize * scale,
-    );
+    final textStyle = TextStyle(color: foreground, fontSize: node.fontSize * scale);
 
-    // Apply Padding
-    Widget innerContent = Padding(
+    final innerContent = Padding(
       padding: EdgeInsets.only(
         left: node.paddingLeft * scale,
         top: node.paddingTop * scale,
@@ -440,87 +445,77 @@ class _EditorNodePreview extends StatelessWidget {
   Widget _buildBasicWidgetContent(TextStyle textStyle) {
     final foreground = Color(node.textColor & 0xFFFFFFFF);
     return switch (node.type) {
-      EditorWidgetType.button => Center(
-        child: Text(node.text, style: textStyle),
-      ),
+      EditorWidgetType.button || EditorWidgetType.materialButton => Center(
+          child: Text(node.text.isEmpty ? node.type.label : node.text, style: textStyle),
+        ),
       EditorWidgetType.textView => Align(
-        alignment: Alignment.centerLeft,
-        child: Text(node.text, style: textStyle),
-      ),
+          alignment: Alignment.centerLeft,
+          child: Text(node.text.isEmpty ? 'TextView' : node.text, style: textStyle),
+        ),
       EditorWidgetType.editText => Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          node.text.isEmpty ? node.hint : node.text,
-          style: textStyle.copyWith(
-            color: node.text.isEmpty
-                ? foreground.withValues(alpha: 0.45)
-                : foreground,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            node.text.isEmpty ? (node.hint.isEmpty ? 'EditText' : node.hint) : node.text,
+            style: textStyle.copyWith(
+              color: node.text.isEmpty ? foreground.withValues(alpha: 0.45) : foreground,
+            ),
           ),
         ),
-      ),
       EditorWidgetType.imageView => Center(
-        child: Icon(
-          Icons.image_outlined,
-          color: foreground.withValues(alpha: 0.55),
-          size: 36 * scale,
-        ),
-      ),
-      EditorWidgetType.checkBox => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.check_box_outline_blank,
-            size: 22 * scale,
-            color: foreground,
+          child: Icon(
+            Icons.image_outlined,
+            color: foreground.withValues(alpha: 0.55),
+            size: 36 * scale,
           ),
-          SizedBox(width: 6 * scale),
-          Text(node.text, style: textStyle),
-        ],
-      ),
-      EditorWidgetType.switchView => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(node.text, style: textStyle),
-          SizedBox(width: 8 * scale),
-          Icon(Icons.toggle_on, size: 32 * scale, color: const Color(0xFF6B5CE7)),
-        ],
-      ),
-      EditorWidgetType.progressBar => Center(
-        child: Padding(
-          padding: EdgeInsets.all(10 * scale),
-          child: const LinearProgressIndicator(value: 0.55),
         ),
-      ),
-      EditorWidgetType.listView => Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(
-          3,
-          (_) => Divider(height: 1, indent: 10 * scale, endIndent: 10 * scale),
-        ),
-      ),
-      EditorWidgetType.floatingButton => Center(
-        child: Text(node.text, style: textStyle.copyWith(fontSize: 26 * scale)),
-      ),
-      _ => Center(
-        child: Row(
+      EditorWidgetType.checkBox => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              iconForWidget(node.type),
-              size: 20 * scale,
-              color: foreground,
-            ),
-            SizedBox(width: 5 * scale),
-            Flexible(
-              child: Text(
-                node.text,
-                style: textStyle,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+            Icon(Icons.check_box_outline_blank, size: 22 * scale, color: foreground),
+            SizedBox(width: 6 * scale),
+            Text(node.text.isEmpty ? 'CheckBox' : node.text, style: textStyle),
           ],
         ),
-      ),
+      EditorWidgetType.switchView => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(node.text.isEmpty ? 'Switch' : node.text, style: textStyle),
+            SizedBox(width: 8 * scale),
+            Icon(Icons.toggle_on, size: 32 * scale, color: const Color(0xFF6B5CE7)),
+          ],
+        ),
+      EditorWidgetType.progressBar => Center(
+          child: Padding(
+            padding: EdgeInsets.all(10 * scale),
+            child: const LinearProgressIndicator(value: 0.55),
+          ),
+        ),
+      EditorWidgetType.listView || EditorWidgetType.recyclerView => Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(
+            3,
+            (_) => Divider(height: 1, indent: 10 * scale, endIndent: 10 * scale),
+          ),
+        ),
+      EditorWidgetType.floatingButton => Center(
+          child: Text(node.text.isEmpty ? '+' : node.text, style: textStyle.copyWith(fontSize: 26 * scale)),
+        ),
+      _ => Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(iconForWidget(node.type), size: 20 * scale, color: foreground),
+              SizedBox(width: 5 * scale),
+              Flexible(
+                child: Text(
+                  node.text.isEmpty ? node.type.label : node.text,
+                  style: textStyle,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
     };
   }
 }
