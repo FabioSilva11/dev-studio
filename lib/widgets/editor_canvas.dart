@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/editor_project.dart';
 import 'editor_palette.dart';
 
-class EditorCanvas extends StatelessWidget {
+class EditorCanvas extends StatefulWidget {
   const EditorCanvas({
     super.key,
     required this.widgets,
@@ -29,8 +29,18 @@ class EditorCanvas extends StatelessWidget {
   final double canvasWidth;
   final double canvasHeight;
 
+  @override
+  State<EditorCanvas> createState() => _EditorCanvasState();
+}
+
+class _EditorCanvasState extends State<EditorCanvas> {
+  final GlobalKey _canvasKey = GlobalKey();
+  final Map<String, Rect> _nodeRects = <String, Rect>{};
+  _DropTargetInfo? _hoverTarget;
+  bool _dragging = false;
+
   List<EditorWidgetNode> get _rootWidgets {
-    final root = widgets
+    final root = widget.widgets
         .where((w) => w.parentId == 'root' || !_exists(w.parentId))
         .toList()
       ..sort((a, b) => a.index.compareTo(b.index));
@@ -39,85 +49,79 @@ class EditorCanvas extends StatelessWidget {
 
   bool _exists(String id) {
     if (id == 'root') return true;
-    return widgets.any((w) => w.id == id);
+    return widget.widgets.any((w) => w.id == id);
+  }
+
+  Rect get _canvasRect => Rect.fromLTWH(
+        0,
+        0,
+        widget.canvasWidth * widget.scale,
+        widget.canvasHeight * widget.scale,
+      );
+
+  @override
+  void didUpdateWidget(covariant EditorCanvas oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.widgets != widget.widgets) {
+      _nodeRects.clear();
+      _hoverTarget = null;
+      _dragging = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Container(
-        width: canvasWidth * scale,
-        height: canvasHeight * scale,
+        key: _canvasKey,
+        width: widget.canvasWidth * widget.scale,
+        height: widget.canvasHeight * widget.scale,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFE2E3E8), width: 1),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x16000000),
-              blurRadius: 18,
-              offset: Offset(0, 7),
+              color: Color(0x14000000),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
           ],
         ),
-        clipBehavior: Clip.antiAlias,
+        clipBehavior: Clip.hardEdge,
         child: DragTarget<Object>(
-          onWillAcceptWithDetails: (details) => _canDropOnRoot(details.data),
-          onAcceptWithDetails: (details) => _dropOnRoot(details.data),
+          onWillAcceptWithDetails: (details) => _canAcceptDrag(details.data),
+          onMove: _handleDragMove,
+          onLeave: (_) => _clearHover(),
+          onAcceptWithDetails: _handleDrop,
           builder: (context, candidateData, rejectedData) {
-            final isHovering = candidateData.isNotEmpty;
             return Stack(
               children: [
-                Positioned.fill(child: CustomPaint(painter: _GridPainter(scale))),
+                Positioned.fill(child: CustomPaint(painter: _GridPainter(widget.scale))),
                 Positioned.fill(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => onSelect(null),
-                    child: _buildLayoutList(
-                      parentId: 'root',
-                      children: _rootWidgets,
-                      orientation: 'vertical',
-                      isRoot: true,
-                    ),
-                  ),
-                ),
-                if (widgets.isEmpty || isHovering)
-                  IgnorePointer(
-                    child: Center(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: isHovering
-                              ? accentColor.withValues(alpha: 0.10)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isHovering ? accentColor : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isHovering ? Icons.add_circle_outline : Icons.touch_app_outlined,
-                              size: 42,
-                              color: isHovering ? accentColor : const Color(0xFFB1B2BA),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              isHovering ? 'Release to add view' : 'Drag a view here',
-                              style: TextStyle(
-                                color: isHovering ? accentColor : const Color(0xFF8E8E93),
-                                fontWeight: isHovering ? FontWeight.w700 : FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
+                    onTap: () => widget.onSelect(null),
+                    child: Padding(
+                      padding: EdgeInsets.all(8 * widget.scale),
+                      child: _buildLayoutList(
+                        parentId: 'root',
+                        children: _rootWidgets,
+                        orientation: 'vertical',
+                        isRoot: true,
                       ),
                     ),
                   ),
+                ),
+                if (widget.widgets.isEmpty && !_dragging)
+                  const IgnorePointer(
+                    child: Center(
+                      child: Text(
+                        'Drag a view here',
+                        style: TextStyle(color: Color(0xFF8E8E93)),
+                      ),
+                    ),
+                  ),
+                if (_hoverTarget != null) _buildDropHighlight(_hoverTarget!),
               ],
             );
           },
@@ -126,22 +130,216 @@ class EditorCanvas extends StatelessWidget {
     );
   }
 
-  bool _canDropOnRoot(Object data) {
-    if (data is EditorWidgetType) return true;
-    if (data is String) return widgets.any((item) => item.id == data);
-    return false;
+  bool _canAcceptDrag(Object data) {
+    return data is PaletteDragData ||
+        data is EditorWidgetType ||
+        (data is String && widget.widgets.any((item) => item.id == data));
   }
 
-  void _dropOnRoot(Object data) {
-    final insertIndex = _rootWidgets.length;
-    if (data is EditorWidgetType) {
-      onAddWidget(data, 'root', insertIndex);
+  void _handleDragMove(DragTargetDetails<Object> details) {
+    final local = _globalToCanvas(details.offset);
+    if (local == null) return;
+    final target = _findDropTarget(local, details.data);
+    if (target != _hoverTarget || !_dragging) {
+      setState(() {
+        _dragging = true;
+        _hoverTarget = target;
+      });
+    }
+  }
+
+  void _handleDrop(DragTargetDetails<Object> details) {
+    final local = _globalToCanvas(details.offset);
+    final target = _hoverTarget ??
+        (local == null ? null : _findDropTarget(local, details.data)) ??
+        _DropTargetInfo(
+          parentId: 'root',
+          index: _rootWidgets.length,
+          depth: 0,
+          parentRect: _canvasRect,
+          orientation: 'vertical',
+        );
+
+    final data = details.data;
+    if (data is PaletteDragData) {
+      widget.onAddWidget(data.type, target.parentId, target.index);
+    } else if (data is EditorWidgetType) {
+      widget.onAddWidget(data, target.parentId, target.index);
     } else if (data is String) {
-      final node = widgets.where((item) => item.id == data).firstOrNull;
-      if (node != null && node.parentId != 'root') {
-        onMoveWidget(data, 'root', insertIndex);
+      widget.onMoveWidget(data, target.parentId, target.index);
+    }
+
+    _clearHover();
+  }
+
+  Offset? _globalToCanvas(Offset global) {
+    final canvasContext = _canvasKey.currentContext;
+    final renderObject = canvasContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+    return renderObject.globalToLocal(global);
+  }
+
+  void _clearHover() {
+    if (!_dragging && _hoverTarget == null) return;
+    if (!mounted) return;
+    setState(() {
+      _dragging = false;
+      _hoverTarget = null;
+    });
+  }
+
+  _DropTargetInfo? _findDropTarget(Offset point, Object data) {
+    if (!_canvasRect.contains(point)) return null;
+
+    var best = _DropTargetInfo(
+      parentId: 'root',
+      index: _indexForParent('root', point, data),
+      depth: 0,
+      parentRect: _canvasRect,
+      orientation: 'vertical',
+    );
+
+    for (final node in widget.widgets) {
+      if (!_isLayoutNode(node)) continue;
+      if (data is String && (node.id == data || _isDescendantOf(node.id, data))) continue;
+      final rect = _nodeRects[node.id];
+      if (rect == null || !rect.contains(point)) continue;
+      final depth = _depthOf(node.id);
+      if (depth >= best.depth) {
+        best = _DropTargetInfo(
+          parentId: node.id,
+          index: _indexForParent(node.id, point, data),
+          depth: depth,
+          parentRect: rect,
+          orientation: _orientationForParent(node.id),
+        );
       }
     }
+
+    return best;
+  }
+
+  int _indexForParent(String parentId, Offset point, Object dragData) {
+    final children = _childrenOf(parentId)
+        .where((child) => dragData is! String || (child.id != dragData && !_isDescendantOf(child.id, dragData)))
+        .toList();
+    if (children.isEmpty) return 0;
+
+    final orientation = _orientationForParent(parentId);
+    if (orientation == 'free') return children.length;
+
+    for (var i = 0; i < children.length; i++) {
+      final rect = _nodeRects[children[i].id];
+      if (rect == null) continue;
+      final beforeCenter = orientation == 'horizontal'
+          ? point.dx < rect.center.dx
+          : point.dy < rect.center.dy;
+      if (beforeCenter) return i;
+    }
+    return children.length;
+  }
+
+  Widget _buildDropHighlight(_DropTargetInfo target) {
+    final rect = _highlightRectFor(target).intersect(_canvasRect);
+    final isInsertionLine = target.orientation != 'free' &&
+        (rect.height <= 8 || rect.width <= 8) &&
+        _childrenOf(target.parentId).isNotEmpty;
+
+    return Positioned(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      child: IgnorePointer(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 80),
+          decoration: BoxDecoration(
+            color: isInsertionLine
+                ? widget.accentColor
+                : widget.accentColor.withValues(alpha: 0.10),
+            border: isInsertionLine
+                ? null
+                : Border.all(color: widget.accentColor, width: 1.5),
+            borderRadius: BorderRadius.circular(isInsertionLine ? 3 : 8),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Rect _highlightRectFor(_DropTargetInfo target) {
+    final parentRect = target.parentRect.deflate(4 * widget.scale);
+    final children = _childrenOf(target.parentId)
+        .where((child) => _nodeRects.containsKey(child.id))
+        .toList();
+
+    if (target.orientation == 'free' || children.isEmpty) {
+      return parentRect;
+    }
+
+    if (target.orientation == 'horizontal') {
+      double x;
+      if (target.index <= 0) {
+        x = _nodeRects[children.first.id]?.left ?? parentRect.left;
+      } else if (target.index >= children.length) {
+        x = _nodeRects[children.last.id]?.right ?? parentRect.right;
+      } else {
+        final prev = _nodeRects[children[target.index - 1].id];
+        final next = _nodeRects[children[target.index].id];
+        x = prev != null && next != null ? (prev.right + next.left) / 2 : parentRect.left;
+      }
+      return Rect.fromLTWH(x - 2, parentRect.top, 4, parentRect.height);
+    }
+
+    double y;
+    if (target.index <= 0) {
+      y = _nodeRects[children.first.id]?.top ?? parentRect.top;
+    } else if (target.index >= children.length) {
+      y = _nodeRects[children.last.id]?.bottom ?? parentRect.bottom;
+    } else {
+      final prev = _nodeRects[children[target.index - 1].id];
+      final next = _nodeRects[children[target.index].id];
+      y = prev != null && next != null ? (prev.bottom + next.top) / 2 : parentRect.top;
+    }
+    return Rect.fromLTWH(parentRect.left, y - 2, parentRect.width, 4);
+  }
+
+  List<EditorWidgetNode> _childrenOf(String parentId) {
+    final list = parentId == 'root'
+        ? _rootWidgets
+        : widget.widgets.where((w) => w.parentId == parentId).toList();
+    list.sort((a, b) => a.index.compareTo(b.index));
+    return list;
+  }
+
+  String _orientationForParent(String parentId) {
+    if (parentId == 'root') return 'vertical';
+    final parent = widget.widgets.where((item) => item.id == parentId).firstOrNull;
+    if (parent == null) return 'vertical';
+    if (parent.type == EditorWidgetType.relativeLayout) return 'free';
+    if (parent.type == EditorWidgetType.horizontalScroll) return 'horizontal';
+    return parent.orientation == 'horizontal' ? 'horizontal' : 'vertical';
+  }
+
+  int _depthOf(String id) {
+    var depth = 0;
+    var current = widget.widgets.where((item) => item.id == id).firstOrNull;
+    final visited = <String>{};
+    while (current != null && current.parentId != 'root' && visited.add(current.id)) {
+      depth++;
+      current = widget.widgets.where((item) => item.id == current!.parentId).firstOrNull;
+    }
+    return depth + 1;
+  }
+
+  bool _isDescendantOf(String candidateId, String ancestorId) {
+    var current = widget.widgets.where((item) => item.id == candidateId).firstOrNull;
+    final visited = <String>{};
+    while (current != null && current.parentId != 'root' && visited.add(current.id)) {
+      if (current.parentId == ancestorId) return true;
+      current = widget.widgets.where((item) => item.id == current!.parentId).firstOrNull;
+    }
+    return false;
   }
 
   Widget _buildLayoutList({
@@ -150,124 +348,77 @@ class EditorCanvas extends StatelessWidget {
     required String orientation,
     bool isRoot = false,
   }) {
-    final isVertical = orientation == 'vertical';
-    final listItems = <Widget>[
-      _buildInsertionTarget(parentId: parentId, index: 0, isVertical: isVertical),
-    ];
-
-    for (var i = 0; i < children.length; i++) {
-      listItems.add(_buildWidgetNode(children[i]));
-      listItems.add(
-        _buildInsertionTarget(
-          parentId: parentId,
-          index: i + 1,
-          isVertical: isVertical,
-        ),
+    if (orientation == 'horizontal') {
+      return Row(
+        mainAxisSize: isRoot ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children.map(_buildWidgetNode).toList(),
       );
     }
 
-    if (isRoot) {
-      return Scrollbar(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: listItems,
-          ),
-        ),
+    if (orientation == 'free') {
+      return Stack(
+        clipBehavior: Clip.none,
+        children: children.map((child) {
+          return Positioned(
+            left: child.x * widget.scale,
+            top: child.y * widget.scale,
+            child: _buildWidgetNode(child),
+          );
+        }).toList(),
       );
     }
 
-    if (isVertical) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: listItems,
-      );
-    }
-
-    return Row(mainAxisSize: MainAxisSize.min, children: listItems);
-  }
-
-  Widget _buildInsertionTarget({
-    required String parentId,
-    required int index,
-    required bool isVertical,
-  }) {
-    return DragTarget<Object>(
-      onWillAcceptWithDetails: (details) {
-        final data = details.data;
-        if (data is String && (data == parentId || _isDescendantOf(parentId, data))) {
-          return false;
-        }
-        return data is EditorWidgetType || data is String;
-      },
-      onAcceptWithDetails: (details) {
-        final data = details.data;
-        if (data is EditorWidgetType) {
-          onAddWidget(data, parentId, index);
-        } else if (data is String) {
-          onMoveWidget(data, parentId, index);
-        }
-      },
-      builder: (context, candidateData, rejectedData) {
-        final isHovered = candidateData.isNotEmpty;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          width: isVertical ? double.infinity : (isHovered ? 12 : 4),
-          height: isVertical ? (isHovered ? 12 : 4) : double.infinity,
-          margin: EdgeInsets.symmetric(
-            horizontal: isVertical ? 0 : 2,
-            vertical: isVertical ? 2 : 0,
-          ),
-          decoration: BoxDecoration(
-            color: isHovered ? accentColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        );
-      },
+    return Column(
+      mainAxisSize: isRoot ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children.map(_buildWidgetNode).toList(),
     );
   }
 
-  bool _isDescendantOf(String candidateId, String ancestorId) {
-    var current = widgets.where((item) => item.id == candidateId).firstOrNull;
-    final visited = <String>{};
-    while (current != null && current.parentId != 'root' && visited.add(current.id)) {
-      if (current.parentId == ancestorId) return true;
-      current = widgets.where((item) => item.id == current!.parentId).firstOrNull;
-    }
-    return false;
-  }
-
   Widget _buildWidgetNode(EditorWidgetNode node) {
-    final selected = node.id == selectedWidgetId;
+    final selected = node.id == widget.selectedWidgetId;
     final isContainer = _isLayoutNode(node);
-    final children = widgets.where((w) => w.parentId == node.id).toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
+    final parentOrientation = _orientationForParent(node.parentId);
+    final children = _childrenOf(node.id);
 
-    final widthVal = _resolveSize(node.width);
-    final heightVal = _resolveSize(node.height);
+    final widthVal = _resolveWidth(node.width, parentOrientation);
+    final heightVal = _resolveHeight(node.height, parentOrientation);
 
     Widget content = _EditorNodePreview(
       node: node,
-      scale: scale,
+      scale: widget.scale,
+      accentColor: widget.accentColor,
       childrenWidget: isContainer
           ? _buildLayoutList(
               parentId: node.id,
               children: children,
-              orientation: node.orientation,
+              orientation: _orientationForParent(node.id),
             )
           : null,
     );
 
-    content = Padding(
-      padding: EdgeInsets.only(
-        left: node.marginLeft * scale,
-        top: node.marginTop * scale,
-        right: node.marginRight * scale,
-        bottom: node.marginBottom * scale,
+    content = ConstrainedBox(
+      constraints: BoxConstraints(
+        minWidth: isContainer ? 72 * widget.scale : 24 * widget.scale,
+        minHeight: isContainer ? 48 * widget.scale : 24 * widget.scale,
       ),
       child: content,
+    );
+
+    content = Padding(
+      padding: EdgeInsets.only(
+        left: node.marginLeft * widget.scale,
+        top: node.marginTop * widget.scale,
+        right: node.marginRight * widget.scale,
+        bottom: node.marginBottom * widget.scale,
+      ),
+      child: content,
+    );
+
+    final nodeWidget = _measureNode(
+      node.id,
+      SizedBox(width: widthVal, height: heightVal, child: content),
     );
 
     return MouseRegion(
@@ -279,62 +430,49 @@ class EditorCanvas extends StatelessWidget {
           color: Colors.transparent,
           child: Opacity(
             opacity: 0.65,
-            child: DecoratedBox(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.15),
-                border: Border.all(color: accentColor, width: 2),
-                borderRadius: BorderRadius.circular(node.borderRadius),
+                color: widget.accentColor.withValues(alpha: 0.16),
+                border: Border.all(color: widget.accentColor, width: 2),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Text(
-                  node.id,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+              child: Text(
+                node.id,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
           ),
         ),
-        childWhenDragging: const SizedBox.shrink(),
+        childWhenDragging: Opacity(opacity: 0.22, child: nodeWidget),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => onSelect(node.id),
+          onTap: () => widget.onSelect(node.id),
           onDoubleTap: () {
-            onSelect(node.id);
-            onEditProperties();
+            widget.onSelect(node.id);
+            widget.onEditProperties();
           },
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              SizedBox(width: widthVal, height: heightVal, child: content),
+              nodeWidget,
               if (selected)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: Container(
-                      margin: EdgeInsets.only(
-                        left: node.marginLeft * scale,
-                        top: node.marginTop * scale,
-                        right: node.marginRight * scale,
-                        bottom: node.marginBottom * scale,
-                      ),
                       decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.12),
-                        border: Border.all(color: accentColor, width: 2),
-                        borderRadius: BorderRadius.circular(node.borderRadius * scale),
+                        color: widget.accentColor.withValues(alpha: 0.10),
+                        border: Border.all(color: widget.accentColor, width: 2),
                       ),
                     ),
                   ),
                 ),
               if (selected)
-                Positioned(
-                  right: (node.marginRight - 4) * scale,
-                  top: (node.marginTop - 4) * scale,
-                  child: const _SelectionHandle(),
-                ),
+                const Positioned(right: -4, top: -4, child: _SelectionHandle()),
             ],
           ),
         ),
@@ -342,10 +480,37 @@ class EditorCanvas extends StatelessWidget {
     );
   }
 
-  double? _resolveSize(double value) {
-    if (value == -1) return double.infinity;
+  Widget _measureNode(String id, Widget child) {
+    return Builder(
+      builder: (context) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final canvasObject = _canvasKey.currentContext?.findRenderObject();
+          final nodeObject = context.findRenderObject();
+          if (canvasObject is! RenderBox || nodeObject is! RenderBox) return;
+          if (!canvasObject.hasSize || !nodeObject.hasSize) return;
+          final offset = nodeObject.localToGlobal(Offset.zero, ancestor: canvasObject);
+          _nodeRects[id] = offset & nodeObject.size;
+        });
+        return child;
+      },
+    );
+  }
+
+  double? _resolveWidth(double value, String parentOrientation) {
+    if (value == -1) {
+      return parentOrientation == 'horizontal' ? 140 * widget.scale : double.infinity;
+    }
     if (value == -2) return null;
-    return value * scale;
+    return value * widget.scale;
+  }
+
+  double? _resolveHeight(double value, String parentOrientation) {
+    if (value == -1) {
+      return parentOrientation == 'vertical' ? 56 * widget.scale : double.infinity;
+    }
+    if (value == -2) return null;
+    return value * widget.scale;
   }
 
   bool _isLayoutNode(EditorWidgetNode node) => switch (node.type) {
@@ -356,9 +521,39 @@ class EditorCanvas extends StatelessWidget {
         EditorWidgetType.cardView ||
         EditorWidgetType.textInputLayout ||
         EditorWidgetType.swipeRefresh ||
-        EditorWidgetType.collapsingToolbar => true,
+        EditorWidgetType.collapsingToolbar ||
+        EditorWidgetType.radioGroup => true,
         _ => false,
       };
+}
+
+class _DropTargetInfo {
+  const _DropTargetInfo({
+    required this.parentId,
+    required this.index,
+    required this.depth,
+    required this.parentRect,
+    required this.orientation,
+  });
+
+  final String parentId;
+  final int index;
+  final int depth;
+  final Rect parentRect;
+  final String orientation;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _DropTargetInfo &&
+        other.parentId == parentId &&
+        other.index == index &&
+        other.depth == depth &&
+        other.parentRect == parentRect &&
+        other.orientation == orientation;
+  }
+
+  @override
+  int get hashCode => Object.hash(parentId, index, depth, parentRect, orientation);
 }
 
 class _SelectionHandle extends StatelessWidget {
@@ -381,7 +576,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0x0C000000)
+      ..color = const Color(0x09000000)
       ..strokeWidth = 1;
     final step = 16 * scale;
     for (double x = step; x < size.width; x += step) {
@@ -400,11 +595,13 @@ class _EditorNodePreview extends StatelessWidget {
   const _EditorNodePreview({
     required this.node,
     required this.scale,
+    required this.accentColor,
     this.childrenWidget,
   });
 
   final EditorWidgetNode node;
   final double scale;
+  final Color accentColor;
   final Widget? childrenWidget;
 
   @override
@@ -433,11 +630,28 @@ class _EditorNodePreview extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: childrenWidget != null ? const Color(0xFF9EA6C7) : const Color(0x22000000),
+            color: childrenWidget != null ? const Color(0xFFD6D8E5) : const Color(0x22000000),
           ),
           borderRadius: radius,
         ),
-        child: innerContent,
+        child: childrenWidget == null
+            ? innerContent
+            : Stack(
+                children: [
+                  Positioned.fill(child: innerContent),
+                  Positioned(
+                    left: 4 * scale,
+                    top: 2 * scale,
+                    child: Text(
+                      node.id.isEmpty ? node.type.label : node.id,
+                      style: TextStyle(
+                        color: accentColor.withValues(alpha: 0.75),
+                        fontSize: 10 * scale,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -461,9 +675,9 @@ class _EditorNodePreview extends StatelessWidget {
             ),
           ),
         ),
-      EditorWidgetType.imageView => Center(
+      EditorWidgetType.imageView || EditorWidgetType.circleImageView => Center(
           child: Icon(
-            Icons.image_outlined,
+            node.type == EditorWidgetType.circleImageView ? Icons.account_circle_outlined : Icons.image_outlined,
             color: foreground.withValues(alpha: 0.55),
             size: 36 * scale,
           ),
@@ -474,6 +688,14 @@ class _EditorNodePreview extends StatelessWidget {
             Icon(Icons.check_box_outline_blank, size: 22 * scale, color: foreground),
             SizedBox(width: 6 * scale),
             Text(node.text.isEmpty ? 'CheckBox' : node.text, style: textStyle),
+          ],
+        ),
+      EditorWidgetType.radioButton => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.radio_button_unchecked, size: 22 * scale, color: foreground),
+            SizedBox(width: 6 * scale),
+            Text(node.text.isEmpty ? 'RadioButton' : node.text, style: textStyle),
           ],
         ),
       EditorWidgetType.switchView => Row(
@@ -490,7 +712,7 @@ class _EditorNodePreview extends StatelessWidget {
             child: const LinearProgressIndicator(value: 0.55),
           ),
         ),
-      EditorWidgetType.listView || EditorWidgetType.recyclerView => Column(
+      EditorWidgetType.listView || EditorWidgetType.recyclerView || EditorWidgetType.gridView => Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: List.generate(
             3,
