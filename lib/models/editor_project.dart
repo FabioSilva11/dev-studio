@@ -1,66 +1,66 @@
 import 'dart:convert';
 
 enum EditorWidgetType {
-  linearLayout(0, 'Linear Layout'),
-  relativeLayout(1, 'Relative Layout'),
+  flexLayout(0, 'Flex Layout'),
+  stackLayout(1, 'Stack'),
   horizontalScroll(2, 'Horizontal Scroll'),
   button(3, 'Button'),
-  textView(4, 'TextView'),
-  editText(5, 'EditText'),
-  imageView(6, 'ImageView'),
+  text(4, 'Text'),
+  textField(5, 'TextField'),
+  image(6, 'Image'),
   webView(7, 'WebView'),
-  progressBar(8, 'ProgressBar'),
+  progressIndicator(8, 'Progress Indicator'),
   listView(9, 'ListView'),
-  spinner(10, 'Spinner'),
-  checkBox(11, 'CheckBox'),
+  dropdown(10, 'Dropdown'),
+  checkbox(11, 'Checkbox'),
   scrollView(12, 'ScrollView'),
-  switchView(13, 'Switch'),
-  seekBar(14, 'SeekBar'),
-  calendarView(15, 'CalendarView'),
-  floatingButton(16, 'Floating Button'),
-  adView(17, 'AdView'),
-  mapView(18, 'MapView'),
-  radioButton(19, 'RadioButton'),
-  ratingBar(20, 'RatingBar'),
-  videoView(21, 'VideoView'),
-  searchView(22, 'SearchView'),
-  autoCompleteText(23, 'AutoCompleteTextView'),
-  multiAutoCompleteText(24, 'MultiAutoCompleteTextView'),
+  switchTile(13, 'Switch'),
+  slider(14, 'Slider'),
+  calendarView(15, 'Calendar View'),
+  floatingActionButton(16, 'FloatingActionButton'),
+  adView(17, 'Ad View'),
+  mapView(18, 'Map View'),
+  radio(19, 'Radio'),
+  ratingBar(20, 'Rating Bar'),
+  videoView(21, 'Video View'),
+  searchBar(22, 'SearchBar'),
+  autocomplete(23, 'Autocomplete'),
+  multiAutocomplete(24, 'Multi Autocomplete'),
   gridView(25, 'GridView'),
-  analogClock(26, 'AnalogClock'),
-  datePicker(27, 'DatePicker'),
-  timePicker(28, 'TimePicker'),
-  digitalClock(29, 'DigitalClock'),
-  tabLayout(30, 'TabLayout'),
-  viewPager(31, 'ViewPager'),
-  bottomNavigation(32, 'BottomNavigationView'),
-  badgeView(33, 'BadgeView'),
-  patternLock(34, 'PatternLockView'),
-  waveSideBar(35, 'WaveSideBar'),
-  cardView(36, 'CardView'),
-  collapsingToolbar(37, 'CollapsingToolbarLayout'),
-  textInputLayout(38, 'TextInputLayout'),
-  swipeRefresh(39, 'SwipeRefreshLayout'),
-  radioGroup(40, 'RadioGroup'),
-  materialButton(41, 'MaterialButton'),
-  signInButton(42, 'SignInButton'),
-  circleImageView(43, 'CircleImageView'),
-  lottieAnimation(44, 'LottieAnimationView'),
-  youtubePlayer(45, 'YoutubePlayerView'),
-  otpView(46, 'OTPView'),
-  codeView(47, 'CodeView'),
-  recyclerView(48, 'RecyclerView');
+  analogClock(26, 'Analog Clock'),
+  datePicker(27, 'Date Picker'),
+  timePicker(28, 'Time Picker'),
+  digitalClock(29, 'Digital Clock'),
+  tabBar(30, 'TabBar'),
+  pageView(31, 'PageView'),
+  navigationBar(32, 'NavigationBar'),
+  badge(33, 'Badge'),
+  patternLock(34, 'Pattern Lock'),
+  waveSideBar(35, 'Wave Side Bar'),
+  card(36, 'Card'),
+  collapsingToolbar(37, 'Sliver App Bar'),
+  inputDecorator(38, 'Input Decorator'),
+  refreshIndicator(39, 'RefreshIndicator'),
+  radioGroup(40, 'Radio Group'),
+  filledButton(41, 'FilledButton'),
+  signInButton(42, 'Sign In Button'),
+  circleAvatar(43, 'CircleAvatar'),
+  lottieAnimation(44, 'Lottie Animation'),
+  youtubePlayer(45, 'YouTube Player'),
+  otpField(46, 'OTP Field'),
+  codeView(47, 'Code View'),
+  recyclerList(48, 'Virtual List');
 
-  const EditorWidgetType(this.sketchwareType, this.label);
+  const EditorWidgetType(this.devStudioType, this.label);
 
-  final int sketchwareType;
+  final int devStudioType;
   final String label;
 
   static EditorWidgetType fromJson(Object? value) {
     final type = int.tryParse(value?.toString() ?? '');
     return values.firstWhere(
-      (item) => item.sketchwareType == type,
-      orElse: () => EditorWidgetType.textView,
+      (item) => item.devStudioType == type,
+      orElse: () => EditorWidgetType.text,
     );
   }
 }
@@ -97,15 +97,15 @@ class EditorWidgetNode {
     this.gravity = 0,
     this.layoutGravity = 0,
     this.weight = 0,
-    this.layoutFile = 'main.xml',
+    this.layoutFile = 'main.dart',
   });
 
   final String id;
   final EditorWidgetType type;
   final double x;
   final double y;
-  final double width; // Maps to layout width (negative values for MATCH_PARENT/WRAP_CONTENT or absolute)
-  final double height; // Maps to layout height
+  final double width;
+  final double height;
   final String text;
   final String parentId;
   final int parentType;
@@ -202,7 +202,7 @@ class EditorWidgetNode {
 
   Map<String, Object?> toJson() => {
     'id': id,
-    'type': type.sketchwareType,
+    'type': type.devStudioType,
     'name': id,
     'parent': parentId,
     'parentType': parentType,
@@ -242,7 +242,7 @@ class EditorWidgetNode {
         (json[key] as num?)?.toInt() ?? fallback;
 
     return EditorWidgetNode(
-      id: json['id']?.toString() ?? 'view',
+      id: json['id']?.toString() ?? 'widget',
       type: EditorWidgetType.fromJson(json['type']),
       x: number('x', 24),
       y: number('y', 24),
@@ -272,7 +272,7 @@ class EditorWidgetNode {
       gravity: integer('gravity', 0),
       layoutGravity: integer('layoutGravity', 0),
       weight: integer('weight', 0),
-      layoutFile: json['layoutFile']?.toString() ?? 'main.xml',
+      layoutFile: json['layoutFile']?.toString() ?? 'main.dart',
     );
   }
 }
@@ -287,8 +287,8 @@ class EditorEventItem {
 
   factory EditorEventItem.fromJson(Map<String, Object?> json) {
     return EditorEventItem(
-      target: json['target']?.toString() ?? 'Activity',
-      name: json['name']?.toString() ?? 'onCreate',
+      target: json['target']?.toString() ?? 'App',
+      name: json['name']?.toString() ?? 'main',
     );
   }
 }
@@ -304,16 +304,16 @@ class EditorComponentItem {
   factory EditorComponentItem.fromJson(Map<String, Object?> json) {
     return EditorComponentItem(
       id: json['id']?.toString() ?? 'component',
-      type: json['type']?.toString() ?? 'Intent',
+      type: json['type']?.toString() ?? 'Service',
     );
   }
 }
 
 class EditorProjectData {
   const EditorProjectData({
-    this.fileName = 'main.xml',
+    this.fileName = 'main.dart',
     this.widgets = const [],
-    this.events = const [EditorEventItem(target: 'Activity', name: 'onCreate')],
+    this.events = const [EditorEventItem(target: 'App', name: 'main')],
     this.components = const [],
     this.strings = const {'app_name': 'My application'},
   });
@@ -325,7 +325,7 @@ class EditorProjectData {
   final Map<String, String> strings;
 
   Map<String, Object?> toJson() => {
-    'version': 1,
+    'version': 2,
     'fileName': fileName,
     'widgets': widgets.map((item) => item.toJson()).toList(),
     'events': events.map((item) => item.toJson()).toList(),
@@ -341,7 +341,7 @@ class EditorProjectData {
         : const {};
     final rawStrings = mapValue(json['strings']);
     return EditorProjectData(
-      fileName: json['fileName']?.toString() ?? 'main.xml',
+      fileName: json['fileName']?.toString() ?? 'main.dart',
       widgets: (json['widgets'] as List? ?? const [])
           .map((item) => EditorWidgetNode.fromJson(mapValue(item)))
           .toList(),
