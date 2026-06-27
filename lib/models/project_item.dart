@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-enum ProjectKind { native }
+enum ProjectKind { flutter }
 
 class ProjectItem {
   const ProjectItem({
@@ -38,7 +38,7 @@ class ProjectItem {
       packageName: readString('packageName'),
       versionName: readString('versionName', '1.0'),
       versionCode: readString('versionCode', '1'),
-      kind: ProjectKind.native,
+      kind: ProjectKind.flutter,
       sourcePath: readString('sourcePath'),
       iconBytes: map['iconBytes'] as Uint8List?,
     );
@@ -47,30 +47,30 @@ class ProjectItem {
 
 const sampleProjects = <ProjectItem>[
   ProjectItem(
-    id: '601',
+    id: '1',
     appName: 'Dev Studio',
     workspaceName: 'Dev Studio',
     packageName: 'com.devstudio.app',
     versionName: '1.0',
     versionCode: '1',
-    kind: ProjectKind.native,
+    kind: ProjectKind.flutter,
   ),
   ProjectItem(
-    id: '602',
+    id: '2',
     appName: 'Calculator',
     workspaceName: 'Calculator Demo',
     packageName: 'com.devstudio.calculator',
     versionName: '1.2',
     versionCode: '3',
-    kind: ProjectKind.native,
+    kind: ProjectKind.flutter,
   ),
   ProjectItem(
-    id: '603',
+    id: '3',
     appName: 'Weather',
     workspaceName: 'Weather Demo',
     packageName: 'com.devstudio.weather',
     versionName: '1.0',
     versionCode: '1',
-    kind: ProjectKind.native,
+    kind: ProjectKind.flutter,
   ),
 ];
