@@ -1,5 +1,7 @@
 .PHONY: help \
-	commit diff push pull gitlog
+	commit diff push pull gitlog \
+	ios-sim ios-device ios-device-no-sign \
+	ios-local-build ios-local-run
 # =========================
 # Help
 # =========================
@@ -44,3 +46,21 @@ gitlog: ## Show git log in one line format
 
 pullmain: ## Pull latest changes from main branch
 	git checkout main && git pull origin main
+
+# =========================
+# iOS Build
+# =========================
+ios-local-build: ## Build local iOS app for simulator (no signing required)
+	flutter build ios --simulator
+
+ios-local-run: ## Run app locally on iOS simulator (iPhone 15)
+	flutter run -d "iPhone 15"
+
+ios-sim: ## Build iOS app for simulator
+	flutter build ios --simulator
+
+ios-device: ## Build iOS app for physical device (requires Apple provisioning)
+	flutter build ios
+
+ios-device-no-sign: ## Build iOS app for physical device without codesign
+	flutter build ios --no-codesign

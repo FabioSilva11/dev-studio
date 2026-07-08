@@ -190,20 +190,20 @@ A programação visual não deve gerar código solto diretamente a partir da UI.
 O fluxo desejado é:
 
 ```txt
-Blocos visuais -> Modelo de lógica -> UseCases/gerador -> Código MVVM
+Blocos visuais -> Modelo de lógica -> ViewModel -> (UseCase opcional) -> Repository/Service
 ```
 
 Quando o Dev Studio gerar um projeto Flutter, os blocos devem ser convertidos para código compatível com a arquitetura gerada:
 
 ```txt
-UI -> ViewModel -> UseCase -> Repository -> Service
+UI -> ViewModel -> (UseCase quando necessário) -> Repository -> Service
 ```
 
 Exemplo:
 
 - bloco `showMessage`: pode virar evento de UI ou efeito de ViewModel;
 - bloco `navigateToScreen`: pode virar comando de navegação;
-- bloco `callApi`: deve passar por UseCase, Repository e Service;
+- bloco `callApi`: deve passar por Repository e Service, usando UseCase quando houver orquestração de regra de negócio;
 - bloco `setVariable`: pode atualizar estado no ViewModel.
 
 ## Fora do MVP

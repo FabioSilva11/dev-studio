@@ -2,159 +2,105 @@
 
 ## Status
 
-Aceito.
+Aceito com adoção incremental de UseCase.
 
 ## Contexto
 
-O Dev Studio será um editor visual com muitas operações pequenas e recorrentes: criar projeto, abrir projeto, adicionar widget, mover widget, editar propriedades, salvar, desfazer, refazer e futuramente gerar código.
+O Dev Studio precisa de uma arquitetura previsível para suportar crescimento sem acoplamento entre UI, dados e infraestrutura.
 
-Sem uma arquitetura clara, esse tipo de aplicação tende a misturar UI, regras de edição, persistência e detalhes técnicos. A base anterior mostrou esse risco: muitas possibilidades no mesmo lugar, pouco isolamento e pouca documentação de intenção.
-
-Também existe uma preferência técnica importante: o desenvolvimento deve aproveitar experiência prévia com MVVM.
+Ao mesmo tempo, a implementação atual já possui um fluxo funcional em produção com foco em ViewModel, Repository e Services de dados/infraestrutura.
 
 ## Decisão
 
-O Dev Studio será desenvolvido usando MVVM com o fluxo:
+A base arquitetural oficial continua sendo MVVM com `Command` e `Result` como contratos padrão para operações assíncronas e tratamento de falha.
+
+Fluxo implementado hoje:
+
+```txt
+UI -> ViewModel -> Repository -> API/Service -> RestClient -> Dio
+```
+
+Fluxo alvo para evolução completa:
 
 ```txt
 UI -> ViewModel -> UseCase -> Repository -> Service
 ```
 
-A mesma arquitetura deve ser usada como base para o código gerado futuramente pelo Dev Studio.
-
-A estrutura de pastas deve ser organizada por camadas principais: `ui`, `domain`, `data` e `core`.
+A camada de UseCase deve ser introduzida gradualmente em fluxos que exigem coordenação de regras de negócio, mantendo compatibilidade com o fluxo atual.
 
 ## Responsabilidades
 
 ### UI
 
-- Renderiza o estado.
-- Encaminha intenções do usuário.
-- Não contém regra de negócio.
-- Não acessa Repository ou Service diretamente.
+- Renderiza estado.
+- Encaminha intenções.
+- Não acessa detalhes de transporte ou storage.
 
 ### ViewModel
 
-- Mantém estado de tela.
-- Recebe commands.
-- Chama UseCases.
-- Converte resultados em estado renderizável.
-- Expõe loading, erro, mensagens e dados de tela.
+- Expõe estado de tela e comandos.
+- Coordena chamadas de caso de uso (quando existir) ou repositório.
+- Converte `Result` em estado renderizável.
 
 ### UseCase
 
-- Executa uma ação de aplicação.
-- Coordena repositories.
-- Valida regras do domínio.
-- Retorna `Result`.
+- Encapsula regra de negócio e orquestração de operações.
+- Deve ser preferido em fluxos de negócio complexos.
 - Não depende de Flutter.
 
 ### Repository
 
-- Define contrato de acesso a dados.
-- Pertence ao domínio.
-- Esconde detalhes de storage, JSON, importadores e exportadores.
+- Expõe operações de dados para a aplicação.
+- Esconde APIs, cache e storage.
 
-### Service
+### Service/Infra
 
-- Implementa detalhes técnicos.
-- Pode lidar com arquivo local, platform APIs, importação, exportação, serialização e integrações.
+- Implementa transporte, serialização, cache e integrações técnicas.
 
 ## Command
 
-Commands representam operações assíncronas executadas pela UI por meio dos ViewModels.
+`Command0` e `Command1` representam operações assíncronas iniciadas pela UI.
 
-O Dev Studio deve usar commands tipados por quantidade de entrada:
-
-Exemplos:
+Estados esperados:
 
 ```txt
-Command0<Output>
-Command1<Output, Input>
-
-CommandState
-  idle
-  running
-  success
-  failure
+idle
+running
+success
+failure
 ```
 
-Commands devem ser pequenos, explícitos e testáveis. Cada command executa uma action que retorna `Future<Result<T>>`.
+Commands devem ser pequenos, explícitos e testáveis.
 
 ## Result
 
-Operações que podem falhar devem retornar um resultado padronizado.
+Toda operação com falha previsível deve usar `Result<T>`:
 
 ```txt
-Result<T>
-  Success<T>
-  Failure<T>
-
-AppError
-  code
-  message
-  cause
+Success<T>
+Failure<T>
 ```
 
-Falhas previsíveis devem usar `Failure`, não exceções propagadas até a UI.
-
-Exceções continuam existindo para erros inesperados, mas devem ser capturadas nas bordas técnicas e convertidas em `AppError` quando fizer sentido.
-
-## Geração de Código
-
-Projetos gerados pelo Dev Studio devem seguir a mesma base:
-
-```txt
-lib/
-  core/
-    result/
-      command.dart
-      result.dart
-      unit.dart
-      errors/
-    routing/
-    services/
-    config/
-    extensions/
-
-  domain/
-    common/
-    usecases/
-
-  data/
-    repositories/
-    services/
-
-  ui/
-    app_widget.dart
-    components/
-    pages/
-      feature_name/
-        feature_page.dart
-        viewmodel/
-          feature_viewmodel.dart
-        widgets/
-    viewmodels.dart
-```
-
-Para apps muito simples, o gerador pode omitir camadas vazias. Mesmo assim, a organização padrão deve continuar sendo MVVM.
+Falhas previsíveis devem ser mapeadas para `AppError` com `code` e `message` adequados.
 
 ## Consequências
 
 ### Benefícios
 
-- Facilita testes.
-- Reduz mistura entre UI e persistência.
-- Cria um padrão mental consistente.
-- Permite que o Dev Studio ensine e gere uma arquitetura previsível.
-- Ajuda a manter o editor visual sob controle conforme crescer.
+- Isolamento entre camadas.
+- Contrato uniforme de sucesso/falha.
+- Facilidade de testes unitários.
+- Evolução segura da arquitetura para casos de uso explícitos.
 
 ### Custos
 
-- Mais arquivos no início.
-- Mais disciplina para não furar camadas.
-- Pode parecer pesado para exemplos muito simples.
+- Maior quantidade de abstrações em fluxos simples.
+- Adoção gradual pode coexistir com dois estilos temporariamente.
 
 ## Regra de Ouro
 
-Se uma ação altera projeto, editor, tela ou widget, ela deve passar por ViewModel e UseCase.
+Toda ação relevante de negócio deve passar por ViewModel e retornar `Result`.
+
+Para fluxos simples, ViewModel pode chamar Repository diretamente.
+
+Para fluxos complexos, a chamada deve passar por UseCase.

@@ -1,5 +1,17 @@
 # MVP
 
+## Status Atual da Base
+
+A base técnica para o MVP já possui:
+
+- camadas `core`, `data`, `domain` e `ui` organizadas;
+- infraestrutura HTTP com `RestClient` e Dio;
+- bootstrap de injeção de dependências;
+- rotas e páginas iniciais (`splash` e `home`);
+- contratos de `Result`, `Command` e `AppError`.
+
+O escopo abaixo continua sendo o MVP funcional do editor visual.
+
 ## Objetivo do MVP
 
 Validar que o Dev Studio consegue criar, editar, salvar e reabrir uma tela visual simples usando formato próprio.
@@ -31,7 +43,7 @@ O MVP não precisa ter editor completo de blocos, mas o schema deve conter a est
 - Reabertura sem perda de dados.
 - Schema com espaço para `logic.events`.
 - ViewModels para projetos e editor.
-- UseCases para criar, abrir, salvar e editar projeto.
+- UseCases para criar, abrir, salvar e editar projeto (adoção incremental).
 - Result padronizado para sucesso e falha.
 
 ## Widgets do MVP
@@ -67,4 +79,4 @@ O MVP está pronto quando:
 - a estrutura de JSON possui `logic.events`;
 - o editor não depende de código Android nativo para funcionar.
 - a UI não acessa Repository ou Service diretamente;
-- actions principais passam por ViewModel e UseCase.
+- actions principais passam por ViewModel e `Result`, usando UseCase quando houver regra de negócio relevante.

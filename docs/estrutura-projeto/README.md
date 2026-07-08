@@ -1,33 +1,43 @@
 # Estruturação do Dev Studio
 
-Este diretório define uma proposta inicial para recomeçar o Dev Studio como um projeto organizado, com escopo próprio e arquitetura clara.
+Este diretório reúne duas visões complementares:
 
-A decisão central é abandonar a base atual como núcleo de desenvolvimento. Ela pode continuar servindo como referência visual e fonte de aprendizado, mas o novo projeto deve nascer com modelo próprio, persistência própria e uma separação explícita entre editor, projeto, importadores e exportadores.
+- direção de produto e arquitetura alvo;
+- fotografia técnica do que já está implementado.
+
+A proposta continua sendo o Dev Studio como editor visual mobile-first em Flutter, com formato de projeto próprio. Ao mesmo tempo, a base atual já possui uma fundação arquitetural real (core, data, domain, ui) com autenticação em Firebase, roteamento e injeção de dependências.
 
 ## Documentos
 
 - [01-visao.md](01-visao.md): objetivo do produto, público e princípios.
 - [02-nao-objetivos.md](02-nao-objetivos.md): o que não será feito no início.
-- [03-arquitetura-inicial.md](03-arquitetura-inicial.md): módulos e responsabilidades.
+- [03-arquitetura-inicial.md](03-arquitetura-inicial.md): arquitetura atual implementada e arquitetura alvo.
 - [04-schema-do-projeto.md](04-schema-do-projeto.md): formato de armazenamento do projeto.
-- [05-mvp.md](05-mvp.md): menor versão útil para validar a ideia.
-- [06-roadmap.md](06-roadmap.md): fases sugeridas de evolução.
+- [05-mvp.md](05-mvp.md): MVP do produto e status de base já concluída.
+- [06-roadmap.md](06-roadmap.md): fases sugeridas de evolução e marco técnico atual.
 - [07-adr-mvvm-command-result.md](07-adr-mvvm-command-result.md): decisão arquitetural sobre MVVM, Command e Result.
 - [08-programacao-visual.md](08-programacao-visual.md): modelo conceitual para lógica visual por blocos.
 - [09-adr-nao-traduzir-sketchware.md](09-adr-nao-traduzir-sketchware.md): justificativa para não traduzir diretamente o Sketchware original.
 
-## Decisão de Direção
+## Fluxo Arquitetural
 
-Dev Studio será um editor visual mobile-first inspirado no Sketchware, feito em Flutter, com formato de projeto próprio.
+Fluxo em produção hoje:
 
-Compatibilidade com Sketchware deve existir apenas como importação opcional e segura, nunca como edição direta dos arquivos originais.
+```txt
+UI -> ViewModel -> Repository -> Service
+Auth: UI -> ViewModel -> AuthRepository -> FirebaseAuth
+```
 
-A compatibilidade com Sketchware é uma feature de entrada, não uma fundação arquitetural.
-
-O projeto será desenvolvido usando MVVM, com fluxo:
+Fluxo alvo para evolução do produto (com casos de uso explícitos):
 
 ```txt
 UI -> ViewModel -> UseCase -> Repository -> Service
 ```
 
-A mesma base arquitetural deve orientar a geração futura de código para projetos criados no Dev Studio.
+A camada de UseCases já existe em `lib/domain/usecases`, mas sua adoção está gradual e deve ser feita conforme os fluxos de negócio do editor visual forem sendo incorporados.
+
+## Decisão de Direção
+
+- Compatibilidade com Sketchware deve existir como importação opcional e segura, nunca como edição direta de arquivos originais.
+- A compatibilidade com Sketchware é uma feature de entrada, não a fundação arquitetural.
+- A base técnica atual deve continuar evoluindo com separação clara de responsabilidades entre UI, domínio, dados e infraestrutura.
